@@ -1,0 +1,42 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/*.log
+.vscode/*.lock
+*.code-workspace
+
+# Keil uVision user/session files
+*.uvguix.*
+*.uvoptx
+*.bak
+*.dep
+
+# Keil ARMCC/ARMCLANG build artifacts
+*.axf
+*.bin
+*.hex
+*.o
+*.obj
+*.d
+*.crf
+*.map
+*.lst
+*.lnp
+*.htm
+
+# MDK build output folders
+MDK-ARM/test2/
+MDK-ARM/Objects/
+MDK-ARM/Listings/
+
+# EWARM user/temp outputs
+EWARM/Debug/
+EWARM/Release/
+*.pbd
+*.dep
+*.pbi
+*.ewt
+*.ewd.bak
+
