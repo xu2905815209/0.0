@@ -441,9 +441,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
   Encoder_Filter_UpdateFromCounter(current_count_1, current_count_3, current_count_4, current_count_5);
 
-  SUPVC_Service_10ms();
-  Chassis_UltrasonicCenterline_Update();
-  Chassis_Position_Control_Loop();
+  /* 统一控制入口（固定 10ms）:
+   * 内部完成传感处理、模式外环、速度内环与遥测快照。 */
+  ld();
 
 }
 /**

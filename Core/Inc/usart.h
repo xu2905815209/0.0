@@ -45,6 +45,7 @@ void MX_USART1_UART_Init(void);
 int uart_printf(const char *fmt, ...);
 void Bluetooth_UART_StartReceive(void);
 void Bluetooth_UART_RxCallback(UART_HandleTypeDef *huart);
+void Bluetooth_UART_ProcessPending(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

@@ -13,62 +13,58 @@
 #include "gpio.h"
 #include "control.h"
 #include "supvc.h"
+#include "jy61p_uart.h"
 
 void SystemClock_Config(void);
 
+/* 关键控制调度入口（由定时器中断周期调用）:
+ * 1) 信号采集: 超声/编码器/IMU 原始量更新
+ * 2) 信号预处理: 滤波、归一化
+ * 3) 信号处理: 差值计算、方向闭环、速度闭环、PWM 计算
+ * 4) 硬件控制: 四电机 PWM 下发
+ *
+ * 具体细节由 Control_10ms_Task() 负责实现，ld() 负责统一入口管理。 */
+void ld(void)
+{
+  Control_10ms_Task();
+}
+
 int main(void)
 {
+  /* 基础硬件初始化（HAL + 时钟）。 */
   HAL_Init();
   SystemClock_Config();
+
+  /* 外设初始化顺序:
+   * GPIO/电机/超声/串口/IMU/控制定时器。 */
   MX_GPIO_Init();
   motor_init();
   SUPVC_Init();
   MX_I2C1_Init();
   MX_USART1_UART_Init();
+  JY61P_UART_Init();
   MX_TIM6_Init();
+
+  /* 控制模块初始化（参数、PID、状态机）。 */
   Chassis_PID_Init();
-  uart_printf("BOOT: USART1 OK\r\n");
+  uart_printf("ACK,BOOT,READY\r\n");
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
   Chassis_Control_ResetState();
+
+  /* 启动 10ms 控制中断。 */
   HAL_TIM_Base_Start_IT(&htim6);
 
   while (1)
   {
-    float d1;
-    float d2;
-    float d3;
-    uint32_t w1;
-    uint32_t w2;
-    uint32_t raw3;
-    uint8_t v1;
-    uint8_t v2;
-    uint8_t v3;
-    static uint32_t print_count = 0;
-
-    d1 = SUPVC_GetDistanceCm(1);
-    d2 = SUPVC_GetDistanceCm(2);
-    d3 = SUPVC_GetDistanceCm(3);
-    w1 = SUPVC_GetEchoWidthUs(1);
-    w2 = SUPVC_GetEchoWidthUs(2);
-    raw3 = SUPVC_GetEchoWidthUs(3);
-    v1 = SUPVC_IsValid(1);
-    v2 = SUPVC_IsValid(2);
-    v3 = SUPVC_IsValid(3);
-
-    print_count++;
-    if ((print_count % 2U) == 0U) {
-      uart_printf("ULTRA_FILT: L=%.2fcm R=%.2fcm F=%.2fcm\r\n", d1, d2, d3);
-      uart_printf("SUPVC: D1=%.2fcm W1=%lu V1=%u | D2=%.2fcm W2=%lu V2=%u | D3=%.2fcm A3=%lu V3=%u\r\n",
-                  d1, (unsigned long)w1, (unsigned int)v1,
-                  d2, (unsigned long)w2, (unsigned int)v2,
-                  d3, (unsigned long)raw3, (unsigned int)v3);
-    }
-
-    HAL_Delay(100);
+    /* 主循环只做轻量后台任务:
+     * 1) 蓝牙命令出队并解析
+     * 2) 校准与遥测发送 */
+    Bluetooth_UART_ProcessPending();
+    Control_MainLoop_Task();
   }
 }
 
