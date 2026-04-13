@@ -1,4 +1,4 @@
-﻿/* USER CODE BEGIN Header */
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file           : main.c
@@ -18,7 +18,7 @@
 void SystemClock_Config(void);
 
 /* 关键控制调度入口（由定时器中断周期调用）:
- * 1) 信号采集: 超声/编码器/IMU 原始量更新
+ * 1) 信号采集: 传感器/编码器/IMU 原始量更新
  * 2) 信号预处理: 滤波、归一化
  * 3) 信号处理: 差值计算、方向闭环、速度闭环、PWM 计算
  * 4) 硬件控制: 四电机 PWM 下发
@@ -36,13 +36,13 @@ int main(void)
   SystemClock_Config();
 
   /* 外设初始化顺序:
-   * GPIO/电机/超声/串口/IMU/控制定时器。 */
+   * GPIO/电机/传感器/串口/IMU/控制定时器。 */
   MX_GPIO_Init();
   motor_init();
-  MX_I2C1_Init();
-  SUPVC_Init();
+  /* MX_I2C1_Init(); // 已禁用：PB6/PB7 现在由软件 I2C 驱动 VL53L0X CH6 */
   MX_USART1_UART_Init();
   JY61P_UART_Init();
+  SUPVC_Init();  /* 必须在串口之后初始化，以便输出诊断日志 */
   MX_TIM6_Init();
 
   /* 控制模块初始化（参数、PID、状态机）。 */

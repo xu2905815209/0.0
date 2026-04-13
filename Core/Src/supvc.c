@@ -1,890 +1,473 @@
-﻿#include "supvc.h"
-#include "i2c.h"
-#include <math.h>
+/**
+ * @file supvc.c
+ * @brief VL53L0X 六通道软件模拟 I2C 驱动
+ *
+ * 每个通道使用独立的 GPIO 引脚对模拟 I2C 总线，
+ * 所有传感器均使用默认地址 0x29 (8位写地址 0x52)。
+ */
+#include "supvc.h"
+#include "usart.h"
+#include <string.h>
 
-TIM_HandleTypeDef htim2;
+/* ============================================================================
+ * VL53L0X 寄存器定义（精简版）
+ * ============================================================================ */
+#define VL53L0X_ADDR_W                  0x52  /* 0x29 << 1 */
+#define VL53L0X_ADDR_R                  0x53  /* 0x29 << 1 | 1 */
 
-#define SUPVC_HCSR04_CHANNEL_COUNT      2U
-#define SUPVC_US016_CHANNEL_COUNT       3U
-#define SUPVC_KS103_CHANNEL_INDEX       5U
+#define VL53L0X_REG_IDENTIFICATION_MODEL_ID         0xC0
+#define VL53L0X_REG_VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HV 0x89
+#define VL53L0X_REG_MSRC_CONFIG_CONTROL             0x60
+#define VL53L0X_REG_SYSTEM_SEQUENCE_CONFIG           0x01
+#define VL53L0X_REG_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT 0x44
+#define VL53L0X_REG_SYSRANGE_START                   0x00
+#define VL53L0X_REG_RESULT_INTERRUPT_STATUS          0x13
+#define VL53L0X_REG_RESULT_RANGE_STATUS              0x14
+#define VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR           0x0B
+#define VL53L0X_REG_GPIO_HV_MUX_ACTIVE_HIGH         0x84
+#define VL53L0X_REG_SYSTEM_INTERRUPT_CONFIG_GPIO     0x0A
 
-typedef enum {
-  SUPVC_KS103_PHASE_IDLE = 0,
-  SUPVC_KS103_PHASE_WAIT_TX,
-  SUPVC_KS103_PHASE_WAIT_CONVERSION,
-  SUPVC_KS103_PHASE_WAIT_RX
-} SUPVC_KS103_Phase_t;
+#define VL53L0X_MODEL_ID_EXPECTED       0xEE
 
-static volatile uint32_t supvc_echo_start[SUPVC_CHANNEL_COUNT] = {0};
-static volatile uint32_t supvc_echo_width_us[SUPVC_CHANNEL_COUNT] = {0};
-static volatile uint8_t supvc_echo_capture_rising[SUPVC_CHANNEL_COUNT] = {1U, 1U, 0U, 0U, 0U, 0U};
-static volatile float supvc_distance_cm[SUPVC_CHANNEL_COUNT] = {
-  -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f
+/* ============================================================================
+ * 数据存储
+ * ============================================================================ */
+static float    supvc_distance_cm[SUPVC_CHANNEL_COUNT];
+static uint8_t  supvc_distance_valid[SUPVC_CHANNEL_COUNT];
+static uint8_t  supvc_sensor_online[SUPVC_CHANNEL_COUNT]; /* 传感器初始化是否成功 */
+
+/* ============================================================================
+ * 软件 I2C 通道定义
+ * ============================================================================ */
+typedef struct {
+    GPIO_TypeDef *SCL_Port;
+    uint16_t      SCL_Pin;
+    GPIO_TypeDef *SDA_Port;
+    uint16_t      SDA_Pin;
+} SoftI2C_Channel_t;
+
+static const SoftI2C_Channel_t i2c_ch[SUPVC_CHANNEL_COUNT] = {
+    {GPIOB, GPIO_PIN_0,  GPIOA, GPIO_PIN_5},   /* Ch1: PB0/PA5  */
+    {GPIOB, GPIO_PIN_1,  GPIOB, GPIO_PIN_11},  /* Ch2: PB1/PB11 */
+    {GPIOB, GPIO_PIN_5,  GPIOA, GPIO_PIN_6},   /* Ch3: PB5/PA6  */
+    {GPIOC, GPIO_PIN_1,  GPIOA, GPIO_PIN_4},   /* Ch4: PC1/PA4  */
+    {GPIOC, GPIO_PIN_2,  GPIOC, GPIO_PIN_0},   /* Ch5: PC2/PC0  */
+    {GPIOB, GPIO_PIN_6,  GPIOB, GPIO_PIN_7}    /* Ch6: PB6/PB7  */
 };
-static volatile uint8_t supvc_distance_valid[SUPVC_CHANNEL_COUNT] = {0, 0, 0, 0, 0, 0};
-static volatile uint8_t supvc_timeout_ticks[SUPVC_CHANNEL_COUNT] = {0, 0, 0, 0, 0, 0};
-static volatile uint8_t supvc_filter_initialized[SUPVC_CHANNEL_COUNT] = {0, 0, 0, 0, 0, 0};
 
-/* 中值滤波缓冲区：每个通道保存最近5个测量值 */
-#define SUPVC_MEDIAN_WINDOW_SIZE  5U
-static float supvc_median_buffer[SUPVC_CHANNEL_COUNT][SUPVC_MEDIAN_WINDOW_SIZE] = {0};
-static uint8_t supvc_median_index[SUPVC_CHANNEL_COUNT] = {0};
-static uint8_t supvc_median_count[SUPVC_CHANNEL_COUNT] = {0};
+/* ============================================================================
+ * 软件 I2C 底层实现
+ * ============================================================================ */
 
-static volatile uint8_t supvc_ks103_busy = 0U;
-static volatile uint8_t supvc_ks103_data_ready = 0U;
-static volatile uint16_t supvc_ks103_raw_cm = 0U;
-static volatile uint8_t supvc_ks103_timeout_ticks = 0U;
-static volatile uint8_t supvc_ks103_conversion_ticks = 0U;
-static volatile uint8_t supvc_ks103_direct_read_mode = 0U;
-static volatile uint8_t supvc_ks103_timeout_recover = 0U;
-static volatile uint8_t supvc_ks103_addr_index = 0U;
-static volatile uint8_t supvc_ks103_addr7_manual = 0U;
-static volatile uint8_t supvc_ks103_addr7_value = SUPVC_KS103_I2C_ADDRESS_7BIT;
-static volatile uint8_t supvc_ks103_alt_trigger_mode = 0U;
-static volatile uint8_t supvc_ks103_comm_fail_count = 0U;
-static volatile SUPVC_KS103_Phase_t supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-static uint8_t supvc_ks103_rx_buf[2] = {0U, 0U};
-static uint8_t supvc_ks103_tx_cmd_cm = 0x51U;
-
-static const uint16_t trig_pin[SUPVC_HCSR04_CHANNEL_COUNT] = {SUPVC_TRIG1_PIN, SUPVC_TRIG2_PIN};
-static GPIO_TypeDef* const trig_port[SUPVC_HCSR04_CHANNEL_COUNT] = {
-  SUPVC_TRIG1_GPIO_PORT,
-  SUPVC_TRIG2_GPIO_PORT
-};
-static const uint32_t echo_channel[SUPVC_HCSR04_CHANNEL_COUNT] = {TIM_CHANNEL_1, TIM_CHANNEL_4};
-
-static const uint16_t us016_range_pin[SUPVC_US016_CHANNEL_COUNT] = {
-  SUPVC_US016_CH3_RANGE_PIN,
-  SUPVC_US016_CH4_RANGE_PIN,
-  SUPVC_US016_CH5_RANGE_PIN
-};
-static GPIO_TypeDef* const us016_range_port[SUPVC_US016_CHANNEL_COUNT] = {
-  SUPVC_US016_CH3_RANGE_GPIO_PORT,
-  SUPVC_US016_CH4_RANGE_GPIO_PORT,
-  SUPVC_US016_CH5_RANGE_GPIO_PORT
-};
-static const uint8_t us016_adc_channel[SUPVC_US016_CHANNEL_COUNT] = {
-  SUPVC_US016_CH3_ADC_CHANNEL,
-  SUPVC_US016_CH4_ADC_CHANNEL,
-  SUPVC_US016_CH5_ADC_CHANNEL
-};
-static const uint8_t us016_channel_index[SUPVC_US016_CHANNEL_COUNT] = {2U, 3U, 4U};
-static const GPIO_PinState us016_range_level[SUPVC_US016_CHANNEL_COUNT] = {
-  GPIO_PIN_SET,   /* D3: 3m 量程 */
-  GPIO_PIN_RESET, /* D4: 近距 1m 量程 */
-  GPIO_PIN_RESET  /* D5: 近距 1m 量程 */
-};
-static const float us016_range_cm_cfg[SUPVC_US016_CHANNEL_COUNT] = {300.0f, 100.0f, 100.0f};
-static const float us016_min_cm_cfg[SUPVC_US016_CHANNEL_COUNT] = {2.0f, 0.8f, 0.8f};
-static const uint8_t us016_adc_samples[SUPVC_US016_CHANNEL_COUNT] = {8U, 16U, 16U};
-static const float us016_alpha_cfg[SUPVC_US016_CHANNEL_COUNT] = {0.18f, 0.25f, 0.25f};
-static const float us016_jump_limit_cfg[SUPVC_US016_CHANNEL_COUNT] = {35.0f, 8.0f, 8.0f};
-static uint8_t supvc_us016_invalid_ticks[SUPVC_US016_CHANNEL_COUNT] = {0U, 0U, 0U};
-
-#define SUPVC_TRIGGER_US                15U
-#define SUPVC_STARTUP_DELAY_TICKS       30U
-#define SUPVC_HCSR04_GAP_TICKS          6U
-#define SUPVC_TIMEOUT_MAX_TICKS         20U
-#define SUPVC_US016_ADC_MAX             4095.0f
-#define SUPVC_US016_ADC_FAULT_MIN       0U
-#define SUPVC_US016_INVALID_HOLD_TICKS  10U
-#define SUPVC_HCSR04_ALPHA              0.30f
-#define SUPVC_KS103_ALPHA               0.22f
-#define SUPVC_HCSR04_JUMP_LIMIT_CM      45.0f
-#define SUPVC_KS103_JUMP_LIMIT_CM       45.0f
-#define SUPVC_KS103_MIN_CM              2.0f
-#define SUPVC_KS103_MAX_CM              500.0f
-#define SUPVC_KS103_MAX_RAW_MM          5000U
-#define SUPVC_KS103_MM_TO_CM            0.1f
-#define SUPVC_KS103_TIMEOUT_MAX_TICKS   30U
-#define SUPVC_KS103_CONVERSION_TICKS    7U
-#define SUPVC_KS103_RECOVER_DIRECT_THR  3U
-#define SUPVC_KS103_PROFILE_SWITCH_FAILS 10U
-#define SUPVC_KS103_ADDR_CANDIDATE_COUNT 6U
-#define SUPVC_KS103_ADDR_8BIT           ((uint16_t)(SUPVC_KS103_I2C_ADDRESS_7BIT << 1U))
-#define SUPVC_KS103_TRIGGER_REG         0x00U
-#define SUPVC_KS103_TRIGGER_CMD_CM      0x51U
-#define SUPVC_KS103_ALT_TRIGGER_REG     0x02U
-#define SUPVC_KS103_ALT_TRIGGER_CMD_CM  0xB4U
-#define SUPVC_KS103_DISTANCE_REG        0x02U
-
-/* 5点中值滤波：对脉冲干扰有很好的抑制作用 */
-static float SUPVC_Median5(float buf[SUPVC_MEDIAN_WINDOW_SIZE])
+/* 简单可靠的延迟：volatile 循环，约 5us @168MHz */
+static void I2C_DELAY(void)
 {
-  float sorted[SUPVC_MEDIAN_WINDOW_SIZE];
-  uint8_t i, j;
-  float temp;
-
-  /* 复制到临时数组 */
-  for (i = 0U; i < SUPVC_MEDIAN_WINDOW_SIZE; i++) {
-    sorted[i] = buf[i];
-  }
-
-  /* 冒泡排序 */
-  for (i = 0U; i < SUPVC_MEDIAN_WINDOW_SIZE - 1U; i++) {
-    for (j = 0U; j < SUPVC_MEDIAN_WINDOW_SIZE - 1U - i; j++) {
-      if (sorted[j] > sorted[j + 1U]) {
-        temp = sorted[j];
-        sorted[j] = sorted[j + 1U];
-        sorted[j + 1U] = temp;
-      }
-    }
-  }
-
-  return sorted[2U];  /* 返回中值 */
+    volatile uint32_t i = 168;  /* ~5us at 168MHz */
+    while (i--);
 }
 
-static const uint8_t supvc_ks103_addr7_candidates[SUPVC_KS103_ADDR_CANDIDATE_COUNT] = {
-  SUPVC_KS103_I2C_ADDRESS_7BIT,
-  (uint8_t)(SUPVC_KS103_I2C_ADDRESS_7BIT >> 1U),
-  0x70U,
-  0x71U,
-  0x72U,
-  0x73U
-};
-
-static float SUPVC_ApplySmoothFilter(uint8_t ch, float measurement, float alpha, float jump_limit_cm)
+static void SoftI2C_SCL_High(const SoftI2C_Channel_t *ch)
 {
-  float median_value;
-  float current;
-  float limited;
-  uint8_t i;
-  float sorted[SUPVC_MEDIAN_WINDOW_SIZE];
-  float temp;
+    HAL_GPIO_WritePin(ch->SCL_Port, ch->SCL_Pin, GPIO_PIN_SET);
+}
+static void SoftI2C_SCL_Low(const SoftI2C_Channel_t *ch)
+{
+    HAL_GPIO_WritePin(ch->SCL_Port, ch->SCL_Pin, GPIO_PIN_RESET);
+}
+static void SoftI2C_SDA_High(const SoftI2C_Channel_t *ch)
+{
+    HAL_GPIO_WritePin(ch->SDA_Port, ch->SDA_Pin, GPIO_PIN_SET);
+}
+static void SoftI2C_SDA_Low(const SoftI2C_Channel_t *ch)
+{
+    HAL_GPIO_WritePin(ch->SDA_Port, ch->SDA_Pin, GPIO_PIN_RESET);
+}
+static uint8_t SoftI2C_SDA_Read(const SoftI2C_Channel_t *ch)
+{
+    return HAL_GPIO_ReadPin(ch->SDA_Port, ch->SDA_Pin);
+}
 
-  /* 中值滤波步骤：将测量值加入缓冲区 */
-  supvc_median_buffer[ch][supvc_median_index[ch]] = measurement;
-  supvc_median_index[ch] = (uint8_t)((supvc_median_index[ch] + 1U) % SUPVC_MEDIAN_WINDOW_SIZE);
-  if (supvc_median_count[ch] < SUPVC_MEDIAN_WINDOW_SIZE) {
-    supvc_median_count[ch]++;
-  }
+static void SoftI2C_Start(const SoftI2C_Channel_t *ch)
+{
+    SoftI2C_SDA_High(ch);
+    SoftI2C_SCL_High(ch);
+    I2C_DELAY();
+    SoftI2C_SDA_Low(ch);
+    I2C_DELAY();
+    SoftI2C_SCL_Low(ch);
+    I2C_DELAY();
+}
 
-  /* 如果缓冲区未满，直接返回测量值 */
-  if (supvc_median_count[ch] < SUPVC_MEDIAN_WINDOW_SIZE) {
-    supvc_filter_initialized[ch] = 1U;
-    return measurement;
-  }
+static void SoftI2C_Stop(const SoftI2C_Channel_t *ch)
+{
+    SoftI2C_SDA_Low(ch);
+    I2C_DELAY();
+    SoftI2C_SCL_High(ch);
+    I2C_DELAY();
+    SoftI2C_SDA_High(ch);
+    I2C_DELAY();
+}
 
-  /* 5点中值滤波：复制并排序 */
-  for (i = 0U; i < SUPVC_MEDIAN_WINDOW_SIZE; i++) {
-    sorted[i] = supvc_median_buffer[ch][i];
-  }
-  /* 冒泡排序找中值 */
-  for (i = 0U; i < SUPVC_MEDIAN_WINDOW_SIZE - 1U; i++) {
-    uint8_t j;
-    for (j = 0U; j < SUPVC_MEDIAN_WINDOW_SIZE - 1U - i; j++) {
-      if (sorted[j] > sorted[j + 1U]) {
-        temp = sorted[j];
-        sorted[j] = sorted[j + 1U];
-        sorted[j + 1U] = temp;
-      }
+static uint8_t SoftI2C_WaitAck(const SoftI2C_Channel_t *ch)
+{
+    uint16_t timeout = 0;
+    SoftI2C_SDA_High(ch);  /* 释放 SDA，等待从机拉低 */
+    I2C_DELAY();
+    SoftI2C_SCL_High(ch);
+    I2C_DELAY();
+    while (SoftI2C_SDA_Read(ch) == GPIO_PIN_SET) {
+        timeout++;
+        if (timeout > 2000) {
+            SoftI2C_Stop(ch);
+            return 1; /* 超时，无应答 */
+        }
+        I2C_DELAY();  /* 每次检查之间等一下，给从机反应时间 */
     }
-  }
-  median_value = sorted[2U];  /* 取中值 */
+    SoftI2C_SCL_Low(ch);
+    I2C_DELAY();
+    return 0; /* 收到 ACK */
+}
 
-  /* IIR 滤波平滑 */
-  if (!supvc_filter_initialized[ch] || !supvc_distance_valid[ch] || (supvc_distance_cm[ch] < 0.0f)) {
-    supvc_filter_initialized[ch] = 1U;
-    return median_value;
-  }
+static void SoftI2C_Ack(const SoftI2C_Channel_t *ch)
+{
+    SoftI2C_SCL_Low(ch);
+    SoftI2C_SDA_Low(ch);
+    I2C_DELAY();
+    SoftI2C_SCL_High(ch);
+    I2C_DELAY();
+    SoftI2C_SCL_Low(ch);
+    I2C_DELAY();
+}
 
-  current = supvc_distance_cm[ch];
-  limited = median_value;
+static void SoftI2C_NAck(const SoftI2C_Channel_t *ch)
+{
+    SoftI2C_SCL_Low(ch);
+    SoftI2C_SDA_High(ch);
+    I2C_DELAY();
+    SoftI2C_SCL_High(ch);
+    I2C_DELAY();
+    SoftI2C_SCL_Low(ch);
+    I2C_DELAY();
+}
 
-  /* 跳变限制（防止异常值） */
-  if (fabsf(median_value - current) > jump_limit_cm) {
-    if (median_value > current) {
-      limited = current + jump_limit_cm;
+static void SoftI2C_SendByte(const SoftI2C_Channel_t *ch, uint8_t byte)
+{
+    uint8_t i;
+    SoftI2C_SCL_Low(ch);
+    for (i = 0; i < 8; i++) {
+        if (byte & 0x80) {
+            SoftI2C_SDA_High(ch);
+        } else {
+            SoftI2C_SDA_Low(ch);
+        }
+        byte <<= 1;
+        I2C_DELAY();
+        SoftI2C_SCL_High(ch);
+        I2C_DELAY();
+        SoftI2C_SCL_Low(ch);
+        I2C_DELAY();
+    }
+}
+
+static uint8_t SoftI2C_ReadByte(const SoftI2C_Channel_t *ch, uint8_t ack)
+{
+    uint8_t i, res = 0;
+    SoftI2C_SDA_High(ch);  /* 释放 SDA */
+    for (i = 0; i < 8; i++) {
+        SoftI2C_SCL_Low(ch);
+        I2C_DELAY();
+        SoftI2C_SCL_High(ch);
+        I2C_DELAY();
+        res <<= 1;
+        if (SoftI2C_SDA_Read(ch) == GPIO_PIN_SET) {
+            res |= 0x01;
+        }
+    }
+    if (ack) {
+        SoftI2C_Ack(ch);
     } else {
-      limited = current - jump_limit_cm;
+        SoftI2C_NAck(ch);
     }
-  }
-
-  return current + alpha * (limited - current);
+    return res;
 }
 
-static void SUPVC_ResetChannelState(uint8_t ch)
+/* ============================================================================
+ * VL53L0X 寄存器读写
+ * ============================================================================ */
+static uint8_t VL53L0X_WriteReg8(const SoftI2C_Channel_t *ch, uint8_t reg, uint8_t val)
 {
-  supvc_echo_width_us[ch] = 0U;
-  supvc_distance_cm[ch] = -1.0f;
-  supvc_distance_valid[ch] = 0U;
-  supvc_filter_initialized[ch] = 0U;
-  supvc_median_count[ch] = 0U;
-  supvc_median_index[ch] = 0U;
+    SoftI2C_Start(ch);
+    SoftI2C_SendByte(ch, VL53L0X_ADDR_W);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, reg);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, val);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_Stop(ch);
+    return 0;
 }
 
-static uint8_t SUPVC_InISRContext(void)
+static uint8_t VL53L0X_WriteReg16(const SoftI2C_Channel_t *ch, uint8_t reg, uint16_t val)
 {
-  return (__get_IPSR() != 0U) ? 1U : 0U;
+    SoftI2C_Start(ch);
+    SoftI2C_SendByte(ch, VL53L0X_ADDR_W);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, reg);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, (uint8_t)(val >> 8));
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, (uint8_t)(val & 0xFF));
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_Stop(ch);
+    return 0;
 }
 
-static uint16_t SUPVC_KS103_CurrentAddr8(void)
+static uint8_t VL53L0X_ReadReg8(const SoftI2C_Channel_t *ch, uint8_t reg, uint8_t *val)
 {
-  uint8_t addr7;
+    SoftI2C_Start(ch);
+    SoftI2C_SendByte(ch, VL53L0X_ADDR_W);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, reg);
+    if (SoftI2C_WaitAck(ch)) return 1;
 
-  if (supvc_ks103_addr7_manual) {
-    addr7 = supvc_ks103_addr7_value;
-  } else {
-    addr7 = supvc_ks103_addr7_candidates[supvc_ks103_addr_index];
-  }
-
-  return (uint16_t)((uint16_t)addr7 << 1U);
+    SoftI2C_Start(ch);
+    SoftI2C_SendByte(ch, VL53L0X_ADDR_R);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    *val = SoftI2C_ReadByte(ch, 0); /* NACK for last byte */
+    SoftI2C_Stop(ch);
+    return 0;
 }
 
-static uint8_t SUPVC_KS103_CurrentTriggerReg(void)
+static uint8_t VL53L0X_ReadReg16(const SoftI2C_Channel_t *ch, uint8_t reg, uint16_t *val)
 {
-  return supvc_ks103_alt_trigger_mode ? SUPVC_KS103_ALT_TRIGGER_REG : SUPVC_KS103_TRIGGER_REG;
+    uint8_t hi, lo;
+    SoftI2C_Start(ch);
+    SoftI2C_SendByte(ch, VL53L0X_ADDR_W);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    SoftI2C_SendByte(ch, reg);
+    if (SoftI2C_WaitAck(ch)) return 1;
+
+    SoftI2C_Start(ch);
+    SoftI2C_SendByte(ch, VL53L0X_ADDR_R);
+    if (SoftI2C_WaitAck(ch)) return 1;
+    hi = SoftI2C_ReadByte(ch, 1);  /* ACK */
+    lo = SoftI2C_ReadByte(ch, 0);  /* NACK */
+    SoftI2C_Stop(ch);
+
+    *val = ((uint16_t)hi << 8) | lo;
+    return 0;
 }
 
-static uint8_t SUPVC_KS103_CurrentTriggerCmd(void)
+/* ============================================================================
+ * VL53L0X 传感器初始化（精简版，兼容裸机无需官方 API）
+ * 参考 Pololu VL53L0X Arduino Library 的 init() 流程
+ * ============================================================================ */
+static uint8_t VL53L0X_InitSensor(const SoftI2C_Channel_t *ch)
 {
-  return supvc_ks103_alt_trigger_mode ? SUPVC_KS103_ALT_TRIGGER_CMD_CM : SUPVC_KS103_TRIGGER_CMD_CM;
+    uint8_t val8;
+    uint32_t timeout;
+
+    /* 1. 等待芯片启动完成：读 Model ID 直到返回 0xEE */
+    timeout = HAL_GetTick();
+    do {
+        if (VL53L0X_ReadReg8(ch, VL53L0X_REG_IDENTIFICATION_MODEL_ID, &val8) != 0) {
+            return 1; /* I2C 通讯失败 */
+        }
+        if (val8 == VL53L0X_MODEL_ID_EXPECTED) break;
+        if ((HAL_GetTick() - timeout) > 500) return 2; /* 超时 */
+    } while (1);
+
+    /* 2. 设置 2.8V I/O 模式（如果模块使用 2.8V 逻辑） */
+    VL53L0X_ReadReg8(ch, VL53L0X_REG_VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HV, &val8);
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_VHV_CONFIG_PAD_SCL_SDA_EXTSUP_HV, val8 | 0x01);
+
+    /* 3. 标准初始化序列（来自 ST API DataInit） */
+    VL53L0X_WriteReg8(ch, 0x88, 0x00);
+    VL53L0X_WriteReg8(ch, 0x80, 0x01);
+    VL53L0X_WriteReg8(ch, 0xFF, 0x01);
+    VL53L0X_WriteReg8(ch, 0x00, 0x00);
+
+    /* 读取 stop_variable 用于后续单次测量 */
+    VL53L0X_ReadReg8(ch, 0x91, &val8);
+    /* 保存 stop_variable（全局或局部均可，此处简化处理） */
+
+    VL53L0X_WriteReg8(ch, 0x00, 0x01);
+    VL53L0X_WriteReg8(ch, 0xFF, 0x00);
+    VL53L0X_WriteReg8(ch, 0x80, 0x00);
+
+    /* 4. 配置 MSRC（最小信号率检查） */
+    VL53L0X_ReadReg8(ch, VL53L0X_REG_MSRC_CONFIG_CONTROL, &val8);
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_MSRC_CONFIG_CONTROL, val8 | 0x12);
+
+    /* 5. 设置信号速率限制为 0.25 MCPS (固定点 9.7 格式 = 0.25 * 128 = 32) */
+    VL53L0X_WriteReg16(ch, VL53L0X_REG_FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT, 32);
+
+    /* 6. 设置测量序列配置 */
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_SYSTEM_SEQUENCE_CONFIG, 0xFF);
+
+    /* 7. 配置 GPIO 中断：新数据就绪时触发 */
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_SYSTEM_INTERRUPT_CONFIG_GPIO, 0x04);
+    VL53L0X_ReadReg8(ch, VL53L0X_REG_GPIO_HV_MUX_ACTIVE_HIGH, &val8);
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_GPIO_HV_MUX_ACTIVE_HIGH, val8 & ~0x10);
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
+
+    /* 8. 执行一次校准测量以验证传感器工作正常 */
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_SYSRANGE_START, 0x01);
+
+    timeout = HAL_GetTick();
+    do {
+        VL53L0X_ReadReg8(ch, VL53L0X_REG_RESULT_INTERRUPT_STATUS, &val8);
+        if ((val8 & 0x07) != 0) break;
+        if ((HAL_GetTick() - timeout) > 500) return 3; /* 首次测量超时 */
+    } while (1);
+
+    VL53L0X_WriteReg8(ch, VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
+
+    return 0; /* 初始化成功 */
 }
 
-static void SUPVC_KS103_RegisterSuccess(void)
-{
-  supvc_ks103_timeout_recover = 0U;
-  supvc_ks103_comm_fail_count = 0U;
-}
-
-static void SUPVC_KS103_RegisterFailure(void)
-{
-  if (supvc_ks103_addr7_manual) {
-    if (supvc_ks103_timeout_recover < 0xFFU) {
-      supvc_ks103_timeout_recover++;
-    }
-    if (supvc_ks103_timeout_recover >= SUPVC_KS103_RECOVER_DIRECT_THR) {
-      supvc_ks103_direct_read_mode = 1U;
-    }
-    return;
-  }
-
-  if (supvc_ks103_timeout_recover < 0xFFU) {
-    supvc_ks103_timeout_recover++;
-  }
-  if (supvc_ks103_timeout_recover >= SUPVC_KS103_RECOVER_DIRECT_THR) {
-    supvc_ks103_direct_read_mode = 1U;
-  }
-
-  if (supvc_ks103_comm_fail_count < 0xFFU) {
-    supvc_ks103_comm_fail_count++;
-  }
-
-  if (supvc_ks103_comm_fail_count >= SUPVC_KS103_PROFILE_SWITCH_FAILS) {
-    supvc_ks103_comm_fail_count = 0U;
-    supvc_ks103_timeout_recover = 0U;
-    supvc_ks103_direct_read_mode = 0U;
-
-    if (supvc_ks103_alt_trigger_mode == 0U) {
-      supvc_ks103_alt_trigger_mode = 1U;
-    } else {
-      supvc_ks103_alt_trigger_mode = 0U;
-      supvc_ks103_addr_index = (uint8_t)((supvc_ks103_addr_index + 1U) % SUPVC_KS103_ADDR_CANDIDATE_COUNT);
-    }
-  }
-}
-
-static void SUPVC_SetCaptureEdge(uint8_t ch, uint8_t rising)
-{
-  __HAL_TIM_SET_CAPTUREPOLARITY(&htim2,
-                                echo_channel[ch],
-                                rising ? TIM_INPUTCHANNELPOLARITY_RISING : TIM_INPUTCHANNELPOLARITY_FALLING);
-  supvc_echo_capture_rising[ch] = rising;
-}
-
-static void SUPVC_DelayUs(uint32_t us)
-{
-  uint32_t start_ticks;
-  uint32_t wait_ticks;
-
-  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-
-  start_ticks = DWT->CYCCNT;
-  wait_ticks = us * (SystemCoreClock / 1000000U);
-  while ((DWT->CYCCNT - start_ticks) < wait_ticks) {
-  }
-}
-
-static void SUPVC_ADC_Init(void)
-{
-  RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
-
-  GPIOA->MODER |= (3UL << (4U * 2U)) | (3UL << (6U * 2U));
-  GPIOA->PUPDR &= ~((3UL << (4U * 2U)) | (3UL << (6U * 2U)));
-  GPIOC->MODER |= (3UL << (0U * 2U));
-  GPIOC->PUPDR &= ~(3UL << (0U * 2U));
-
-  ADC->CCR &= ~ADC_CCR_ADCPRE;
-  ADC->CCR |= ADC_CCR_ADCPRE_0;
-
-  ADC1->CR1 = 0U;
-  ADC1->CR2 = ADC_CR2_ADON;
-
-  ADC1->SMPR2 &= ~((7UL << (4U * 3U)) | (7UL << (6U * 3U)));
-  ADC1->SMPR2 |= (7UL << (4U * 3U)) | (7UL << (6U * 3U));
-  ADC1->SMPR1 &= ~(7UL << ((10U - 10U) * 3U));
-  ADC1->SMPR1 |= (7UL << ((10U - 10U) * 3U));
-
-  ADC1->SQR1 = 0U;
-  ADC1->SQR2 = 0U;
-  ADC1->SQR3 = SUPVC_US016_CH3_ADC_CHANNEL;
-}
-
-static uint16_t SUPVC_ADC_ReadUS016Raw(uint8_t adc_channel)
-{
-  ADC1->SQR3 = (uint32_t)adc_channel;
-  ADC1->CR2 &= ~ADC_CR2_CONT;
-  ADC1->CR2 |= ADC_CR2_SWSTART;
-  while ((ADC1->SR & ADC_SR_EOC) == 0U) {
-  }
-  return (uint16_t)(ADC1->DR & 0xFFFFU);
-}
-
-static uint16_t SUPVC_ADC_ReadUS016Average(uint8_t adc_channel, uint8_t sample_count)
-{
-  uint32_t sum = 0U;
-  uint8_t i;
-
-  if (sample_count == 0U) {
-    sample_count = 1U;
-  }
-
-  for (i = 0U; i < sample_count; i++) {
-    sum += SUPVC_ADC_ReadUS016Raw(adc_channel);
-  }
-
-  return (uint16_t)(sum / sample_count);
-}
-
-static void SUPVC_UpdateUS016Channel(uint8_t us016_slot, uint8_t channel_index, uint16_t adc_raw)
-{
-  float analog_distance_cm;
-  float range_cm = us016_range_cm_cfg[us016_slot];
-  float min_cm = us016_min_cm_cfg[us016_slot];
-
-  supvc_echo_width_us[channel_index] = adc_raw;
-  analog_distance_cm = ((float)adc_raw / SUPVC_US016_ADC_MAX) * range_cm;
-
-  if (adc_raw > SUPVC_US016_ADC_FAULT_MIN) {
-    if (analog_distance_cm < min_cm) {
-      analog_distance_cm = min_cm;
-    } else if (analog_distance_cm > range_cm) {
-      analog_distance_cm = range_cm;
-    }
-
-    supvc_us016_invalid_ticks[us016_slot] = 0U;
-    supvc_distance_cm[channel_index] = SUPVC_ApplySmoothFilter(channel_index,
-                                                               analog_distance_cm,
-                                                               us016_alpha_cfg[us016_slot],
-                                                               us016_jump_limit_cfg[us016_slot]);
-    supvc_distance_valid[channel_index] = 1U;
-  } else {
-    if ((us016_slot == 1U) || (us016_slot == 2U)) {
-      /* D4/D5 在贴近墙面时可能瞬时掉到 0，近距模式下将其视为最小可测距离而不是直接无效。 */
-      supvc_us016_invalid_ticks[us016_slot] = 0U;
-      supvc_distance_cm[channel_index] = SUPVC_ApplySmoothFilter(channel_index,
-                                                                 min_cm,
-                                                                 us016_alpha_cfg[us016_slot],
-                                                                 us016_jump_limit_cfg[us016_slot]);
-      supvc_distance_valid[channel_index] = 1U;
-      return;
-    }
-
-    if (supvc_us016_invalid_ticks[us016_slot] < 0xFFU) {
-      supvc_us016_invalid_ticks[us016_slot]++;
-    }
-    if (supvc_us016_invalid_ticks[us016_slot] > SUPVC_US016_INVALID_HOLD_TICKS) {
-      SUPVC_ResetChannelState(channel_index);
-    }
-  }
-}
-
-static void SUPVC_KS103_StartTriggerIT(void)
-{
-  if (supvc_ks103_busy) {
-    return;
-  }
-
-  if (SUPVC_InISRContext()) {
-    return;
-  }
-
-  if (hi2c1.Instance != I2C1) {
-    return;
-  }
-
-  if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) {
-    return;
-  }
-
-  supvc_ks103_tx_cmd_cm = SUPVC_KS103_CurrentTriggerCmd();
-  if (HAL_I2C_Mem_Write_IT(&hi2c1,
-                           SUPVC_KS103_CurrentAddr8(),
-                           SUPVC_KS103_CurrentTriggerReg(),
-                           I2C_MEMADD_SIZE_8BIT,
-                           &supvc_ks103_tx_cmd_cm,
-                           1U) == HAL_OK) {
-    supvc_ks103_busy = 1U;
-    supvc_ks103_phase = SUPVC_KS103_PHASE_WAIT_TX;
-  } else {
-    SUPVC_KS103_RegisterFailure();
-  }
-}
-
-static void SUPVC_KS103_StartReadIT(void)
-{
-  if (supvc_ks103_busy) {
-    return;
-  }
-
-  if (SUPVC_InISRContext()) {
-    return;
-  }
-
-  if (hi2c1.Instance != I2C1) {
-    return;
-  }
-
-  if (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY) {
-    return;
-  }
-
-  if (HAL_I2C_Mem_Read_IT(&hi2c1,
-                          SUPVC_KS103_CurrentAddr8(),
-                          SUPVC_KS103_DISTANCE_REG,
-                          I2C_MEMADD_SIZE_8BIT,
-                          supvc_ks103_rx_buf,
-                          2U) == HAL_OK) {
-    supvc_ks103_busy = 1U;
-    supvc_ks103_phase = SUPVC_KS103_PHASE_WAIT_RX;
-  } else {
-    SUPVC_KS103_RegisterFailure();
-  }
-}
-
-static void SUPVC_ProcessKS103Channel(void)
-{
-  float distance_cm;
-  uint16_t raw;
-
-  if (supvc_ks103_timeout_ticks < 0xFFU) {
-    supvc_ks103_timeout_ticks++;
-  }
-
-  if (supvc_ks103_data_ready) {
-    supvc_ks103_data_ready = 0U;
-    supvc_ks103_timeout_ticks = 0U;
-
-    raw = supvc_ks103_raw_cm;
-    supvc_echo_width_us[SUPVC_KS103_CHANNEL_INDEX] = (uint32_t)raw;
-
-    /* 兼容 KS103 不同固件单位：若回传值明显大于 500，按 mm 转 cm。 */
-    if ((raw > (uint16_t)SUPVC_KS103_MAX_CM) && (raw <= SUPVC_KS103_MAX_RAW_MM)) {
-      distance_cm = (float)raw * SUPVC_KS103_MM_TO_CM;
-    } else {
-      distance_cm = (float)raw;
-    }
-
-    if ((distance_cm >= SUPVC_KS103_MIN_CM) && (distance_cm <= SUPVC_KS103_MAX_CM)) {
-      supvc_distance_cm[SUPVC_KS103_CHANNEL_INDEX] = SUPVC_ApplySmoothFilter(SUPVC_KS103_CHANNEL_INDEX,
-                                                                              distance_cm,
-                                                                              SUPVC_KS103_ALPHA,
-                                                                              SUPVC_KS103_JUMP_LIMIT_CM);
-      supvc_distance_valid[SUPVC_KS103_CHANNEL_INDEX] = 1U;
-      SUPVC_KS103_RegisterSuccess();
-    } else {
-      SUPVC_ResetChannelState(SUPVC_KS103_CHANNEL_INDEX);
-    }
-    supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-  }
-
-  if (supvc_ks103_timeout_ticks > SUPVC_KS103_TIMEOUT_MAX_TICKS) {
-    SUPVC_ResetChannelState(SUPVC_KS103_CHANNEL_INDEX);
-    supvc_ks103_busy = 0U;
-    supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-    supvc_ks103_conversion_ticks = 0U;
-    SUPVC_KS103_RegisterFailure();
-  }
-
-  switch (supvc_ks103_phase) {
-    case SUPVC_KS103_PHASE_IDLE:
-      if (supvc_ks103_direct_read_mode) {
-        SUPVC_KS103_StartReadIT();
-      } else {
-        SUPVC_KS103_StartTriggerIT();
-      }
-      break;
-
-    case SUPVC_KS103_PHASE_WAIT_CONVERSION:
-      if (supvc_ks103_conversion_ticks < 0xFFU) {
-        supvc_ks103_conversion_ticks++;
-      }
-      if (supvc_ks103_conversion_ticks >= SUPVC_KS103_CONVERSION_TICKS) {
-        SUPVC_KS103_StartReadIT();
-      }
-      break;
-
-    case SUPVC_KS103_PHASE_WAIT_TX:
-    case SUPVC_KS103_PHASE_WAIT_RX:
-    default:
-      break;
-  }
-}
-
-void MX_TIM2_Init(void)
-{
-  TIM_IC_InitTypeDef sConfigIC = {0};
-
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 84 - 1;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 0xFFFFFFFF;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  if (HAL_TIM_IC_Init(&htim2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
-  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 8;
-
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_4) != HAL_OK)
-  {
-    Error_Handler();
-  }
-}
+/* ============================================================================
+ * 公共接口
+ * ============================================================================ */
 
 void SUPVC_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  uint8_t i;
+    uint8_t i;
+    uint8_t init_result;
 
-  __HAL_RCC_TIM2_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+    /* 使能所有需要的 GPIO 时钟 */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
 
-  for (i = 0U; i < SUPVC_CHANNEL_COUNT; i++) {
-    supvc_echo_start[i] = 0U;
-    supvc_echo_width_us[i] = 0U;
-    supvc_echo_capture_rising[i] = (i < SUPVC_HCSR04_CHANNEL_COUNT) ? 1U : 0U;
-    supvc_distance_cm[i] = -1.0f;
-    supvc_distance_valid[i] = 0U;
-    supvc_timeout_ticks[i] = 0U;
-    supvc_filter_initialized[i] = 0U;
-  }
-  supvc_ks103_busy = 0U;
-  supvc_ks103_data_ready = 0U;
-  supvc_ks103_raw_cm = 0U;
-  supvc_ks103_timeout_ticks = 0U;
-  supvc_ks103_conversion_ticks = 0U;
-  supvc_ks103_direct_read_mode = 0U;
-  supvc_ks103_timeout_recover = 0U;
-  supvc_ks103_addr_index = 0U;
-  supvc_ks103_addr7_manual = 0U;
-  supvc_ks103_addr7_value = SUPVC_KS103_I2C_ADDRESS_7BIT;
-  supvc_ks103_alt_trigger_mode = 0U;
-  supvc_ks103_comm_fail_count = 0U;
-  supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-  for (i = 0U; i < SUPVC_US016_CHANNEL_COUNT; i++) {
-    supvc_us016_invalid_ticks[i] = 0U;
-  }
+    /* 初始化所有通道的 GPIO 为开漏输出 + 内部上拉 */
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_OD;
+    GPIO_InitStruct.Pull  = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    for (i = 0; i < SUPVC_CHANNEL_COUNT; i++) {
+        GPIO_InitStruct.Pin = i2c_ch[i].SCL_Pin;
+        HAL_GPIO_Init(i2c_ch[i].SCL_Port, &GPIO_InitStruct);
 
-  for (i = 0U; i < SUPVC_HCSR04_CHANNEL_COUNT; i++) {
-    GPIO_InitStruct.Pin = trig_pin[i];
-    HAL_GPIO_Init(trig_port[i], &GPIO_InitStruct);
-    HAL_GPIO_WritePin(trig_port[i], trig_pin[i], GPIO_PIN_RESET);
-  }
+        GPIO_InitStruct.Pin = i2c_ch[i].SDA_Pin;
+        HAL_GPIO_Init(i2c_ch[i].SDA_Port, &GPIO_InitStruct);
 
-  for (i = 0U; i < SUPVC_US016_CHANNEL_COUNT; i++) {
-    GPIO_InitStruct.Pin = us016_range_pin[i];
-    HAL_GPIO_Init(us016_range_port[i], &GPIO_InitStruct);
-    HAL_GPIO_WritePin(us016_range_port[i], us016_range_pin[i], us016_range_level[i]);
-  }
+        /* 释放总线（空闲态：高电平） */
+        SoftI2C_SCL_High(&i2c_ch[i]);
+        SoftI2C_SDA_High(&i2c_ch[i]);
 
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+        supvc_distance_cm[i]    = -1.0f;
+        supvc_distance_valid[i] = 0;
+        supvc_sensor_online[i]  = 0;
+    }
 
-  GPIO_InitStruct.Pin = GPIO_PIN_11;
-  GPIO_InitStruct.Alternate = GPIO_AF1_TIM2;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    /* 等待传感器上电稳定（VL53L0X 需要至少 1.2ms，保守等待） */
+    HAL_Delay(100);
 
-  HAL_NVIC_SetPriority(TIM2_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(TIM2_IRQn);
-
-  SUPVC_ADC_Init();
-  MX_TIM2_Init();
-  HAL_TIM_Base_Start(&htim2);
-  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-  HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_4);
-
-  SUPVC_SetCaptureEdge(0U, 1U);
-  SUPVC_SetCaptureEdge(1U, 1U);
-}
-
-void SUPVC_Trigger(uint8_t ch)
-{
-  if ((ch < 1U) || (ch > SUPVC_HCSR04_CHANNEL_COUNT)) return;
-  ch -= 1U;
-
-  HAL_GPIO_WritePin(trig_port[ch], trig_pin[ch], GPIO_PIN_RESET);
-  SUPVC_DelayUs(2U);
-  HAL_GPIO_WritePin(trig_port[ch], trig_pin[ch], GPIO_PIN_SET);
-  SUPVC_DelayUs(SUPVC_TRIGGER_US);
-  HAL_GPIO_WritePin(trig_port[ch], trig_pin[ch], GPIO_PIN_RESET);
+    /* 逐个初始化 VL53L0X 传感器 */
+    uart_printf("=== VL53L0X Init ===\r\n");
+    for (i = 0; i < SUPVC_CHANNEL_COUNT; i++) {
+        init_result = VL53L0X_InitSensor(&i2c_ch[i]);
+        if (init_result == 0) {
+            supvc_sensor_online[i] = 1;
+            uart_printf("CH%d: OK\r\n", i + 1);
+        } else {
+            supvc_sensor_online[i] = 0;
+            uart_printf("CH%d: FAIL (err=%d)\r\n", i + 1, init_result);
+        }
+    }
+    uart_printf("=== Init Done ===\r\n");
 }
 
 void SUPVC_Service_10ms(void)
 {
-  static uint8_t next_channel = 1U;
-  static uint8_t startup_delay = SUPVC_STARTUP_DELAY_TICKS;
-  static uint8_t cooldown_ticks = 0U;
-  uint8_t i;
-  uint16_t adc_raw;
-
-  for (i = 0U; i < SUPVC_HCSR04_CHANNEL_COUNT; i++) {
-    if (supvc_timeout_ticks[i] < 0xFFU) {
-      supvc_timeout_ticks[i]++;
-    }
-    if (supvc_timeout_ticks[i] > SUPVC_TIMEOUT_MAX_TICKS) {
-      SUPVC_ResetChannelState(i);
-      SUPVC_SetCaptureEdge(i, 1U);
-    }
-  }
-
-  if (startup_delay > 0U) {
-    startup_delay--;
-    return;
-  }
-
-  for (i = 0U; i < SUPVC_US016_CHANNEL_COUNT; i++) {
-    adc_raw = SUPVC_ADC_ReadUS016Average(us016_adc_channel[i], us016_adc_samples[i]);
-    SUPVC_UpdateUS016Channel(i, us016_channel_index[i], adc_raw);
-  }
-
-  if (cooldown_ticks > 0U) {
-    cooldown_ticks--;
-    return;
-  }
-
-  SUPVC_Trigger(next_channel);
-  next_channel++;
-  if (next_channel > SUPVC_HCSR04_CHANNEL_COUNT) {
-    next_channel = 1U;
-  }
-
-  cooldown_ticks = SUPVC_HCSR04_GAP_TICKS;
+    /* 空函数，保留兼容接口 */
 }
+
+/* 非阻塞状态机：触发 -> 等待 -> 读取 */
+static uint8_t supvc_measuring = 0;
 
 void SUPVC_Service_MainLoop(void)
 {
-  static uint32_t ks103_last_ms = 0U;
-  uint32_t now_ms = HAL_GetTick();
+    static uint32_t last_ms = 0;
+    uint32_t now_ms = HAL_GetTick();
+    int i;
 
-  if ((now_ms - ks103_last_ms) < 10U) {
-    return;
-  }
+    if (!supvc_measuring) {
+        if (now_ms - last_ms >= 50) { /* 20Hz */
+            /* 触发所有在线传感器 */
+            for (i = 0; i < SUPVC_CHANNEL_COUNT; i++) {
+                if (!supvc_sensor_online[i]) continue;
+                VL53L0X_WriteReg8(&i2c_ch[i], VL53L0X_REG_SYSRANGE_START, 0x01);
+            }
+            supvc_measuring = 1;
+            last_ms = now_ms;
+        }
+    } else {
+        if (now_ms - last_ms >= 40) { /* 等待 40ms 让测量完成 */
+            for (i = 0; i < SUPVC_CHANNEL_COUNT; i++) {
+                if (!supvc_sensor_online[i]) {
+                    supvc_distance_valid[i] = 0;
+                    supvc_distance_cm[i] = -1.0f;
+                    continue;
+                }
 
-  ks103_last_ms = now_ms;
-  SUPVC_ProcessKS103Channel();
-}
+                uint8_t int_status = 0;
+                if (VL53L0X_ReadReg8(&i2c_ch[i], VL53L0X_REG_RESULT_INTERRUPT_STATUS, &int_status) != 0) {
+                    supvc_distance_valid[i] = 0;
+                    supvc_distance_cm[i] = -1.0f;
+                    continue;
+                }
 
-void SUPVC_SetKS103Address7bit(uint8_t addr7)
-{
-  if ((addr7 < 0x08U) || (addr7 > 0x77U)) {
-    return;
-  }
+                if ((int_status & 0x07) != 0) {
+                    /* 读取距离值（寄存器 0x14 + 10 = 0x1E） */
+                    uint16_t range_mm = 0;
+                    if (VL53L0X_ReadReg16(&i2c_ch[i], 0x14 + 10, &range_mm) == 0) {
+                        VL53L0X_WriteReg8(&i2c_ch[i], VL53L0X_REG_SYSTEM_INTERRUPT_CLEAR, 0x01);
 
-  __disable_irq();
-  supvc_ks103_addr7_manual = 1U;
-  supvc_ks103_addr7_value = addr7;
-  supvc_ks103_busy = 0U;
-  supvc_ks103_data_ready = 0U;
-  supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-  supvc_ks103_timeout_ticks = 0U;
-  supvc_ks103_conversion_ticks = 0U;
-  supvc_ks103_timeout_recover = 0U;
-  supvc_ks103_comm_fail_count = 0U;
-  supvc_ks103_direct_read_mode = 0U;
-  __enable_irq();
-}
+                        if (range_mm > 0 && range_mm < 8190) {
+                            supvc_distance_cm[i] = range_mm / 10.0f;
+                            supvc_distance_valid[i] = 1;
+                        } else {
+                            supvc_distance_cm[i] = -1.0f;
+                            supvc_distance_valid[i] = 0;
+                        }
+                    }
+                } else {
+                    supvc_distance_valid[i] = 0;
+                    supvc_distance_cm[i] = -1.0f;
+                }
+            }
 
-void SUPVC_SetKS103Mode(uint8_t direct_read, uint8_t alt_trigger)
-{
-  __disable_irq();
-  supvc_ks103_direct_read_mode = direct_read ? 1U : 0U;
-  supvc_ks103_alt_trigger_mode = alt_trigger ? 1U : 0U;
-  supvc_ks103_busy = 0U;
-  supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-  supvc_ks103_conversion_ticks = 0U;
-  supvc_ks103_timeout_ticks = 0U;
-  __enable_irq();
-}
+            /* --- 蓝牙调试日志 --- */
+            uart_printf("VL53L0X: ");
+            for (i = 0; i < SUPVC_CHANNEL_COUNT; i++) {
+                if (!supvc_sensor_online[i]) {
+                    uart_printf("[%d:OFFLINE] ", i + 1);
+                } else if (supvc_distance_valid[i]) {
+                    uart_printf("[%d:%.1f] ", i + 1, supvc_distance_cm[i]);
+                } else {
+                    uart_printf("[%d:---] ", i + 1);
+                }
+            }
+            uart_printf("\r\n");
 
-void SUPVC_SetKS103AutoDetect(void)
-{
-  __disable_irq();
-  supvc_ks103_addr7_manual = 0U;
-  supvc_ks103_addr7_value = SUPVC_KS103_I2C_ADDRESS_7BIT;
-  supvc_ks103_addr_index = 0U;
-  supvc_ks103_alt_trigger_mode = 0U;
-  supvc_ks103_direct_read_mode = 0U;
-  supvc_ks103_timeout_recover = 0U;
-  supvc_ks103_comm_fail_count = 0U;
-  supvc_ks103_busy = 0U;
-  supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-  supvc_ks103_timeout_ticks = 0U;
-  supvc_ks103_conversion_ticks = 0U;
-  __enable_irq();
-}
-
-uint8_t SUPVC_GetKS103Address7bit(void)
-{
-  if (supvc_ks103_addr7_manual) {
-    return supvc_ks103_addr7_value;
-  }
-  return supvc_ks103_addr7_candidates[supvc_ks103_addr_index];
-}
-
-void SUPVC_GetKS103Flags(uint8_t *manual_addr, uint8_t *direct_read, uint8_t *alt_trigger)
-{
-  if (manual_addr != NULL) {
-    *manual_addr = supvc_ks103_addr7_manual;
-  }
-  if (direct_read != NULL) {
-    *direct_read = supvc_ks103_direct_read_mode;
-  }
-  if (alt_trigger != NULL) {
-    *alt_trigger = supvc_ks103_alt_trigger_mode;
-  }
+            supvc_measuring = 0;
+            last_ms = now_ms;
+        }
+    }
 }
 
 float SUPVC_GetDistanceCm(uint8_t ch)
 {
-  if ((ch < 1U) || (ch > SUPVC_CHANNEL_COUNT)) return -1.0f;
-  ch -= 1U;
-  if (!supvc_distance_valid[ch]) return -1.0f;
-  return supvc_distance_cm[ch];
-}
-
-uint32_t SUPVC_GetEchoWidthUs(uint8_t ch)
-{
-  if ((ch < 1U) || (ch > SUPVC_CHANNEL_COUNT)) return 0U;
-  return supvc_echo_width_us[ch - 1U];
+    if (ch < 1 || ch > SUPVC_CHANNEL_COUNT) return -1.0f;
+    if (!supvc_distance_valid[ch - 1]) return -1.0f;
+    return supvc_distance_cm[ch - 1];
 }
 
 uint8_t SUPVC_IsValid(uint8_t ch)
 {
-  if ((ch < 1U) || (ch > SUPVC_CHANNEL_COUNT)) return 0U;
-  return supvc_distance_valid[ch - 1U];
-}
-
-void HAL_TIM_IC_MspInit(TIM_HandleTypeDef* tim_icHandle)
-{
-  (void)tim_icHandle;
-}
-
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-  uint8_t ch = 0xFFU;
-  uint32_t capture;
-  uint32_t start;
-  uint32_t width;
-  float distance_cm;
-
-  if (htim->Instance != TIM2) return;
-
-  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) ch = 0U;
-  else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) ch = 1U;
-  else return;
-
-  capture = HAL_TIM_ReadCapturedValue(htim, echo_channel[ch]);
-
-  if (supvc_echo_capture_rising[ch]) {
-    supvc_echo_start[ch] = capture;
-    SUPVC_SetCaptureEdge(ch, 0U);
-    return;
-  }
-
-  start = supvc_echo_start[ch];
-  if (capture >= start) {
-    width = capture - start;
-  } else {
-    width = (0xFFFFFFFFUL - start) + capture + 1UL;
-  }
-
-  SUPVC_SetCaptureEdge(ch, 1U);
-  supvc_timeout_ticks[ch] = 0U;
-
-  if ((width < 100U) || (width > 25000U)) {
-    return;
-  }
-
-  supvc_echo_width_us[ch] = width;
-  distance_cm = (width * 0.0343f) / 2.0f;
-
-  supvc_distance_cm[ch] = SUPVC_ApplySmoothFilter(ch,
-                                                  distance_cm,
-                                                  SUPVC_HCSR04_ALPHA,
-                                                  SUPVC_HCSR04_JUMP_LIMIT_CM);
-  supvc_distance_valid[ch] = 1U;
-}
-
-void HAL_I2C_MemTxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-  if (hi2c->Instance != I2C1) {
-    return;
-  }
-
-  supvc_ks103_busy = 0U;
-  if (supvc_ks103_phase == SUPVC_KS103_PHASE_WAIT_TX) {
-    supvc_ks103_phase = SUPVC_KS103_PHASE_WAIT_CONVERSION;
-    supvc_ks103_conversion_ticks = 0U;
-  }
-}
-
-void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
-{
-  if (hi2c->Instance != I2C1) {
-    return;
-  }
-
-  supvc_ks103_raw_cm = (uint16_t)((((uint16_t)supvc_ks103_rx_buf[0]) << 8U) | supvc_ks103_rx_buf[1]);
-  supvc_ks103_data_ready = 1U;
-  supvc_ks103_busy = 0U;
-  supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-}
-
-void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
-{
-  if (hi2c->Instance != I2C1) {
-    return;
-  }
-
-  supvc_ks103_busy = 0U;
-  supvc_ks103_phase = SUPVC_KS103_PHASE_IDLE;
-  supvc_ks103_conversion_ticks = 0U;
-  SUPVC_KS103_RegisterFailure();
+    if (ch < 1 || ch > SUPVC_CHANNEL_COUNT) return 0;
+    return supvc_distance_valid[ch - 1];
 }

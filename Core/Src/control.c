@@ -1,4 +1,4 @@
-﻿#include "control.h"
+#include "control.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -26,13 +26,19 @@ extern int32_t Encoder_TIM5_Count;
 #define CONTROL_EPSILON                  0.0001f
 #define CONTROL_LINE_SINGLE_LOSS_LIMIT   30U
 
-#define CONTROL_ULTRA_D1_LEFT_REAR       0U
-#define CONTROL_ULTRA_D2_RIGHT_REAR      1U
-#define CONTROL_ULTRA_D4_RIGHT_FRONT     3U
-#define CONTROL_ULTRA_D5_LEFT_FRONT      4U
+/* 传感器通道布局映射（SUPVC 通道号从 0 开始）:
+ * CH1(idx=0) = 前方(Front),  CH2(idx=1) = 后方(Rear)
+ * CH3(idx=2) = 左前(LF),     CH4(idx=3) = 右前(RF)
+ * CH5(idx=4) = 左后(LR),     CH6(idx=5) = 右后(RR) */
+#define SENSOR_FRONT              0U   /* CH1: 前方 */
+#define SENSOR_REAR               1U   /* CH2: 后方 */
+#define SENSOR_LEFT_FRONT         2U   /* CH3: 左前 */
+#define SENSOR_RIGHT_FRONT        3U   /* CH4: 右前 */
+#define SENSOR_LEFT_REAR          4U   /* CH5: 左后 */
+#define SENSOR_RIGHT_REAR         5U   /* CH6: 右后 */
 
 /* 全局控制参数:
- * - 超声归一化区间与滤波参数
+ * - 传感器归一化区间与滤波参数
  * - 速度/角速度限幅
  * - PID 初始参数
  * - 遥测开关 */
@@ -65,9 +71,9 @@ typedef struct {
     uint8_t telemetry_enabled;
 } ControlConfig_t;
 
-/* 单通道超声运行状态:
+/* 单通道传感器运行状态:
  * raw           : 当前原始值（本工程对外统一用 SUPVC 的 raw）
- * filtered_raw  : 中值 + IIR 后的值
+ * filtered_raw  : 滤波后的值
  * normalized    : 归一化 0~100
  * history[]     : 3 点中值窗口 */
 typedef struct {
@@ -79,7 +85,7 @@ typedef struct {
     uint32_t history[3];
     uint8_t history_count;
     uint8_t history_index;
-} UltrasonicChannelState_t;
+} SensorChannelState_t;
 
 /* 单轮速度闭环状态。 */
 typedef struct {
@@ -154,7 +160,7 @@ typedef struct {
 
     uint8_t encoder_initialized;
 
-    UltrasonicChannelState_t ultra[CONTROL_ULTRA_COUNT];
+    SensorChannelState_t ultra[CONTROL_ULTRA_COUNT];
     WheelControlState_t wheel[CONTROL_WHEEL_COUNT];
     PID_TypeDef line_pid;    /* 兼容旧接口 */
     PID_TypeDef yaw_pid;     /* 偏航角度PID（控制W） */
@@ -301,31 +307,25 @@ static void reset_runtime_states(void)
  * 根据实测数据校准（2026-04-07） */
 static void init_default_config(void)
 {
-    /* D1/D2 为 HCSR04
-     * 实测数据：
-     * - D1(左后): 靠墙 4.57cm, 离墙 39.95cm
-     * - D2(右后): 靠墙 4.97cm, 离墙 41.18cm */
-    g_cfg.min_raw[0] = -7.0f;
-    g_cfg.max_raw[0] = 52.0f;
-    g_cfg.min_raw[1] = -7.0f;
-    g_cfg.max_raw[1] = 53.0f;
+    /* VL53L0X 模块侧向安装深度不一，根据 22:17 实测数据校准：
+     * - 左前(LF/CH3): 靠墙 ~12.3, 离墙 ~49.5
+     * - 右前(RF/CH4): 靠墙 ~7.2,  离墙 ~44.2
+     * - 左后(LR/CH5): 靠墙 ~7.8,  离墙 ~44.8
+     * - 右后(RR/CH6): 靠墙 ~7.6,  离墙 ~44.3 */
+    g_cfg.min_raw[SENSOR_LEFT_FRONT]  = 12.0f;
+    g_cfg.max_raw[SENSOR_LEFT_FRONT]  = 50.0f;
+    g_cfg.min_raw[SENSOR_RIGHT_FRONT] = 7.0f;
+    g_cfg.max_raw[SENSOR_RIGHT_FRONT] = 45.0f;
+    g_cfg.min_raw[SENSOR_LEFT_REAR]   = 7.5f;
+    g_cfg.max_raw[SENSOR_LEFT_REAR]   = 46.0f;
+    g_cfg.min_raw[SENSOR_RIGHT_REAR]  = 7.3f;
+    g_cfg.max_raw[SENSOR_RIGHT_REAR]  = 45.0f;
 
-    /* D3 前向超声当前未用于闭环 */
-    g_cfg.min_raw[2] = 2.0f;
-    g_cfg.max_raw[2] = 100.0f;
-
-    /* D4/D5 为 US016 近距档（1m量程）
-     * 实测数据：
-     * - D4(右前): 靠墙 5.87cm, 离墙 55cm
-     * - D5(左前): 靠墙 0.80cm, 离墙 50.97cm */
-    g_cfg.min_raw[3] = -10.0f;
-    g_cfg.max_raw[3] = 72.0f;
-    g_cfg.min_raw[4] = -16.0f;
-    g_cfg.max_raw[4] = 68.0f;
-
-    /* D6(KS103) */
-    g_cfg.min_raw[5] = 5.0f;
-    g_cfg.max_raw[5] = 400.0f;
+    /* 前后传感器(CH1/CH2) 目前不参与寻迹闭环，设置宽泛范围 */
+    g_cfg.min_raw[SENSOR_FRONT] = 2.0f;
+    g_cfg.max_raw[SENSOR_FRONT] = 200.0f;
+    g_cfg.min_raw[SENSOR_REAR]  = 2.0f;
+    g_cfg.max_raw[SENSOR_REAR]  = 200.0f;
 
     g_cfg.iir_alpha[0] = 0.25f;
     g_cfg.iir_alpha[1] = 0.25f;
@@ -432,28 +432,85 @@ static void set_mode_internal(ControlMode_t mode)
     }
 }
 
-/* 单通道超声处理：
- * 直接使用 supvc 输出的 cm 值，supvc 内部已有滤波，此处不再重复处理 */
-static void update_single_ultrasonic(uint8_t index, uint32_t raw_value, uint8_t valid)
+/* 单通道传感器处理：
+ * 采用 物理极值剔除 + 5窗口中值滤波(Median) + IIR低通滤波 的超级组合策略，
+ * 专治 VL53L0X 空旷或边缘反射时的 2.0 等乱跳跳变。 */
+static void update_single_sensor(uint8_t index, uint32_t raw_value, uint8_t valid)
 {
-    UltrasonicChannelState_t *ch = &g_state.ultra[index];
+    SensorChannelState_t *ch = &g_state.ultra[index];
+    float alpha = g_cfg.iir_alpha[index];
+    float current_val = (float)raw_value;
 
-    ch->raw = raw_value;
+    static float window[CONTROL_ULTRA_COUNT][5] = {0};
+    static uint8_t win_idx[CONTROL_ULTRA_COUNT] = {0};
+    static uint8_t win_count[CONTROL_ULTRA_COUNT] = {0};
 
-    if ((!valid) || (raw_value == 0U)) {
-        ch->valid = 0U;
+    /* 1. 物理常识异常剔除（Outlier Rejection）
+     * VL53L0X 测距失败或受边缘反光干扰时，常输出 2.0cm（极小值）或几百cm。
+     * 由于小车靠墙极限不可能小于 4cm (会撞墙)，遇到 <= 4.0cm 的值直接视为盲区乱码丢弃。*/
+    uint8_t is_noise = 0;
+    if (valid && (current_val <= 4.0f || current_val > 150.0f)) {
+        is_noise = 1;
+    }
+
+    /* 2. 失效保护逻辑 (Invalid Latching)
+     * 允许最多丢失 5 帧（约 50ms），以跨越 --- 或连续 2.0 等噪点。 */
+    static uint8_t loss_count[CONTROL_ULTRA_COUNT] = {0};
+    if (!valid || is_noise) {
+        if (ch->valid && (loss_count[index] < 5)) {
+            loss_count[index]++;
+            /* 维持之前的 filtered_raw 输出，不污染历史窗口缓存 */
+        } else {
+            ch->valid = 0U;
+            ch->raw = 0;
+            win_count[index] = 0; /* 长时间丢失，清空窗口缓存 */
+        }
         return;
     }
 
-    /* 直接使用 supvc 输出的滤波后值，不做额外处理 */
-    ch->filtered_raw = (float)raw_value;
+    /* 数据正常 */
+    loss_count[index] = 0;
+    ch->raw = raw_value;
+
+    /* 3. 滑动窗口中值滤波 (Median Filter) - 过滤突发毛刺 */
+    window[index][win_idx[index]] = current_val;
+    win_idx[index] = (win_idx[index] + 1) % 5;
+    if (win_count[index] < 5) {
+        win_count[index]++;
+    }
+
+    /* 对窗口内的数据进行排序，取中位数 */
+    float sorted[5];
+    int i, j;
+    for (i = 0; i < win_count[index]; i++) {
+        sorted[i] = window[index][i];
+    }
+    for (i = 0; i < win_count[index] - 1; i++) {
+        for (j = i + 1; j < win_count[index]; j++) {
+            if (sorted[i] > sorted[j]) {
+                float tmp = sorted[i];
+                sorted[i] = sorted[j];
+                sorted[j] = tmp;
+            }
+        }
+    }
+    float median_val = sorted[win_count[index] / 2];
+
+    /* 4. IIR 平滑低通滤波 */
+    if (!ch->valid) {
+        /* 如果是重新获得的第一个有效值，直接初始化 */
+        ch->filtered_raw = median_val;
+        ch->valid = 1U;
+    } else {
+        ch->filtered_raw += alpha * (median_val - ch->filtered_raw);
+    }
+
     ch->normalized = normalize_raw_to_0_100(index, ch->filtered_raw);
-    ch->valid = 1U;
 }
 
 /* 多通道统一更新（按 SUPVC 通道序号 1..N）。
  * 直接使用 cm 单位距离作为 raw 值进行归一化 */
-static void update_ultrasonic_pipeline(void)
+static void update_sensor_pipeline(void)
 {
     uint8_t i;
     float distance_cm;
@@ -461,9 +518,9 @@ static void update_ultrasonic_pipeline(void)
     for (i = 0U; i < CONTROL_ULTRA_COUNT; i++) {
         distance_cm = SUPVC_GetDistanceCm((uint8_t)(i + 1U));
         if (distance_cm < 0.0f) {
-            update_single_ultrasonic(i, 0U, 0U);
+            update_single_sensor(i, 0U, 0U);
         } else {
-            update_single_ultrasonic(i, (uint32_t)(distance_cm), SUPVC_IsValid((uint8_t)(i + 1U)));
+            update_single_sensor(i, (uint32_t)(distance_cm), SUPVC_IsValid((uint8_t)(i + 1U)));
         }
     }
 }
@@ -472,29 +529,36 @@ static void update_ultrasonic_pipeline(void)
  * 麦克纳姆轮运动学逆解分配
  * ============================================================================
  *
- * 传感器布局（小车朝向走廊前方）:
- *     前方
- *      ↑
- *  D5(左前/LF)    D4(右前/RF)
- *     |              |
- *     |    小车      |
- *     |              |
- *  D1(左后/LR)    D2(右后/RR)
+ * VL53L0X 传感器布局（小车朝向走廊前方）:
+ *
+ *              CH1(前方/Front)
+ *                   ↑
+ *     CH3(左前/LF)      CH4(右前/RF)
+ *        |                |
+ *        |    小车         |
+ *        |                |
+ *     CH5(左后/LR)      CH6(右后/RR)
+ *              CH2(后方/Rear)
  *
  * 状态误差解算:
  * - 偏航角度误差(Yaw_Err): 判断车体与墙壁的平行度
- *   Yaw_Err = (LF - LR) - (RF - RR)
+ *   Yaw_Err = (D_LR - D_LF) - (D_RR - D_RF)
  *   >0 表示车头偏右，需要向左自转纠正
  *
  * - 横向中心误差(Lat_Err): 判断车体整体偏左还是偏右
- *   Lat_Err = (LF + LR)/2 - (RF + RR)/2
- *   >0 表示车体整体偏左，需要向右平移纠正
+ *   Lat_Err = (D_LR + D_LF)/2 - (D_RR + D_RF)/2
+ *   >0 表示左侧平均距离大，小车偏左，需要向右平移纠正
  *
- * 麦轮逆解公式（可通过宏定义调整符号）:
- * - 左前轮(A) = Vx - Vy - W
- * - 右前轮(B) = Vx + Vy + W
- * - 左后轮(C) = Vx + Vy - W
- * - 右后轮(D) = Vx - Vy + W
+ * PID 闭环控制:
+ *   Vy = Lat_PID(Lat_Err)   // 横移速度，控制小车居中
+ *   W  = Yaw_PID(Yaw_Err)   // 自转角速度，控制小车姿态
+ *   Vx = 设定值              // 前进速度
+ *
+ * 麦轮逆解公式:
+ *   A(左前) = Vx + Vy - W
+ *   B(右前) = Vx - Vy + W
+ *   C(左后) = Vx + Vy + W
+ *   D(右后) = Vx - Vy - W
  *
  * 物理意义:
  * - Vy > 0: 小车向右横移
@@ -658,41 +722,26 @@ static void apply_wheel_pwm(void)
  * 走廊模式外环 - 状态误差解算 + PID闭环控制
  * ============================================================================
  *
- * 传感器布局（小车朝向走廊前方）:
- *     前方
- *      ↑
- *  D5(左前/LF)    D4(右前/RF)
- *     |              |
- *     |    小车      |
- *     |              |
- *  D1(左后/LR)    D2(右后/RR)
+ * VL53L0X 走廊模式外环控制
  *
- * 状态误差解算:
- * - 偏航角度误差(Yaw_Err): 判断车体与墙壁的平行度
- *   Yaw_Err = (LF - LR) - (RF - RR)
- *   >0 表示车头偏右，需要向左自转纠正（W<0）
+ * 使用四个侧向传感器: CH3(LF), CH4(RF), CH5(LR), CH6(RR)
  *
- * - 横向中心误差(Lat_Err): 判断车体整体偏左还是偏右
- *   Lat_Err = (LF + LR)/2 - (RF + RR)/2
- *   >0 表示车体整体偏左，需要向右平移纠正（Vy>0）
+ * 偏航角度误差: Yaw_Err = (D_LR - D_LF) - (D_RR - D_RF)
+ * 横向中心误差: Lat_Err = (D_LR + D_LF)/2 - (D_RR + D_RF)/2
  *
- * PID闭环控制:
- * - Vy: 以 Lat_Err 为输入，经过位置式 PID 计算输出
- * - W:  以 Yaw_Err 为输入，经过位置式 PID 计算输出
- *
- * 要求四个传感器都有效才工作
+ * 要求四个侧向传感器都有效才工作
  * ============================================================================ */
 static void run_line_mode_outer_loop(float *vx_cmd, float *vy_cmd, float *wz_cmd)
 {
-    uint8_t left_rear_valid = g_state.ultra[CONTROL_ULTRA_D1_LEFT_REAR].valid;
-    uint8_t left_front_valid = g_state.ultra[CONTROL_ULTRA_D5_LEFT_FRONT].valid;
-    uint8_t right_rear_valid = g_state.ultra[CONTROL_ULTRA_D2_RIGHT_REAR].valid;
-    uint8_t right_front_valid = g_state.ultra[CONTROL_ULTRA_D4_RIGHT_FRONT].valid;
+    uint8_t lf_valid = g_state.ultra[SENSOR_LEFT_FRONT].valid;    /* CH3 左前 */
+    uint8_t rf_valid = g_state.ultra[SENSOR_RIGHT_FRONT].valid;   /* CH4 右前 */
+    uint8_t lr_valid = g_state.ultra[SENSOR_LEFT_REAR].valid;     /* CH5 左后 */
+    uint8_t rr_valid = g_state.ultra[SENSOR_RIGHT_REAR].valid;    /* CH6 右后 */
 
-    float dist_LF;  /* D5 左前归一化距离 */
-    float dist_RF;  /* D4 右前归一化距离 */
-    float dist_LR;  /* D1 左后归一化距离 */
-    float dist_RR;  /* D2 右后归一化距离 */
+    float dist_LF;  /* CH3 左前距离 */
+    float dist_RF;  /* CH4 右前距离 */
+    float dist_LR;  /* CH5 左后距离 */
+    float dist_RR;  /* CH6 右后距离 */
 
     float yaw_error;   /* 偏航角度误差 */
     float lat_error;   /* 横向中心误差 */
@@ -700,8 +749,8 @@ static void run_line_mode_outer_loop(float *vx_cmd, float *vy_cmd, float *wz_cmd
     float vy_output;   /* 平移速度输出 */
     float wz_output;   /* 自转角速度输出 */
 
-    /* 四个传感器必须都有效 */
-    if (!left_rear_valid || !left_front_valid || !right_rear_valid || !right_front_valid) {
+    /* 四个侧向传感器必须都有效 */
+    if (!lf_valid || !rf_valid || !lr_valid || !rr_valid) {
         g_state.yaw_error = 0.0f;
         g_state.lat_error = 0.0f;
         *vx_cmd = 0.0f;
@@ -715,41 +764,41 @@ static void run_line_mode_outer_loop(float *vx_cmd, float *vy_cmd, float *wz_cmd
                            -g_cfg.line_forward_limit_mmps,
                            g_cfg.line_forward_limit_mmps);
 
-    /* 获取四个传感器归一化值 */
-    dist_LF = g_state.ultra[CONTROL_ULTRA_D5_LEFT_FRONT].normalized;   /* D5 左前 */
-    dist_RF = g_state.ultra[CONTROL_ULTRA_D4_RIGHT_FRONT].normalized;  /* D4 右前 */
-    dist_LR = g_state.ultra[CONTROL_ULTRA_D1_LEFT_REAR].normalized;    /* D1 左后 */
-    dist_RR = g_state.ultra[CONTROL_ULTRA_D2_RIGHT_REAR].normalized;   /* D2 右后 */
+    /* 获取四个侧向传感器距离值（cm） */
+    dist_LF = g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw;     /* CH3 左前 */
+    dist_RF = g_state.ultra[SENSOR_RIGHT_FRONT].filtered_raw;    /* CH4 右前 */
+    dist_LR = g_state.ultra[SENSOR_LEFT_REAR].filtered_raw;      /* CH5 左后 */
+    dist_RR = g_state.ultra[SENSOR_RIGHT_REAR].filtered_raw;     /* CH6 右后 */
 
-    /* 状态误差解算 */
     /* 偏航角度误差：判断车体与墙壁的平行度
-     * Yaw_Err = (LF - LR) - (RF - RR)
-     * >0 表示车头偏右（前部右侧距离更大），需要向左自转纠正 */
+     * Yaw_Err = (D_LF - D_LR) - (D_RF - D_RR)
+     * >0：前部偏右（LF变大或RF变小）→ 车头偏右 → 对应 W < 0 (向左自转) */
     yaw_error = (dist_LF - dist_LR) - (dist_RF - dist_RR) - g_state.yaw_target;
     g_state.yaw_error = yaw_error;
 
-    /* 横向中心误差：判断车体整体偏左还是偏右
-     * Lat_Err = (LF + LR)/2 - (RF + RR)/2
-     * >0 表示车体整体偏左，需要向右平移纠正 */
-    lat_error = ((dist_LF + dist_LR) * 0.5f) - ((dist_RF + dist_RR) * 0.5f) - g_state.lat_target;
+    /* 横向中心误差：判断小车整体偏左还是偏右
+     * Lat_Err = (D_RR + D_RF)/2 - (D_LR + D_LF)/2
+     * >0：右侧距离小 → 小车偏右 → 对应 Vy < 0 (向左平移) */
+    lat_error = ((dist_RR + dist_RF) * 0.5f) - ((dist_LR + dist_LF) * 0.5f) - g_state.lat_target;
     g_state.lat_error = lat_error;
 
-    /* PID闭环控制 */
-    /* 平移速度 Vy：以 Lat_Err 为输入 */
+    /* 平移速度 Vy：针对 Lat_Err 闭环
+     * >0 (偏左时): 输出 Vy > 0 向右平移 */
     vy_output = PID_Calc(&g_state.lat_pid,
                          g_state.lat_target,
-                         ((dist_LF + dist_LR) * 0.5f) - ((dist_RF + dist_RR) * 0.5f),
+                         lat_error * -1.0f, // 翻转正负号匹配 PID 输入
                          CONTROL_DT_S);
     vy_output = clampf_local(vy_output, -g_cfg.line_vy_limit_mmps, g_cfg.line_vy_limit_mmps);
     *vy_cmd = vy_output;
 
-    /* 自转角速度 W：以 Yaw_Err 为输入 */
+    /* 自转角速度 W：针对 Yaw_Err 闭环
+     * >0 (车头偏右): 输出 W < 0 向左自转 */
     wz_output = PID_Calc(&g_state.yaw_pid,
                          g_state.yaw_target,
-                         (dist_LF - dist_LR) - (dist_RF - dist_RR),
+                         yaw_error,
                          CONTROL_DT_S);
     wz_output = clampf_local(wz_output, -g_cfg.max_wz_dps, g_cfg.max_wz_dps);
-    *wz_cmd = wz_output;
+    *wz_cmd = wz_output * -1.0f; // 翻转正负号匹配逆解符号（W>0为左转）
 }
 
 /* 四轮速度内环:
@@ -836,12 +885,12 @@ static void update_telemetry_snapshot(void)
     g_state.telemetry_snapshot.mode_id = (uint32_t)g_state.mode;
     g_state.telemetry_snapshot.time_ms = HAL_GetTick();
 
-    g_state.telemetry_snapshot.left_raw = (float)g_state.ultra[0].raw;
-    g_state.telemetry_snapshot.right_raw = (float)g_state.ultra[1].raw;
-    g_state.telemetry_snapshot.front_raw = (float)g_state.ultra[2].raw;
+    g_state.telemetry_snapshot.left_raw = (float)g_state.ultra[SENSOR_LEFT_FRONT].raw;
+    g_state.telemetry_snapshot.right_raw = (float)g_state.ultra[SENSOR_RIGHT_FRONT].raw;
+    g_state.telemetry_snapshot.front_raw = (float)g_state.ultra[SENSOR_FRONT].raw;
 
-    g_state.telemetry_snapshot.left_norm = g_state.ultra[0].valid ? g_state.ultra[0].normalized : -1.0f;
-    g_state.telemetry_snapshot.right_norm = g_state.ultra[1].valid ? g_state.ultra[1].normalized : -1.0f;
+    g_state.telemetry_snapshot.left_norm = g_state.ultra[SENSOR_LEFT_FRONT].valid ? g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.right_norm = g_state.ultra[SENSOR_RIGHT_FRONT].valid ? g_state.ultra[SENSOR_RIGHT_FRONT].filtered_raw : -1.0f;
     g_state.telemetry_snapshot.line_error = g_state.line_error;
 
     g_state.telemetry_snapshot.vx_meas = g_state.vx_meas_mmps;
@@ -981,7 +1030,7 @@ void Chassis_StartCalibration(uint8_t channel_mask, uint16_t sample_count)
 }
 
 /* 手动写入某一通道归一化上下限。 */
-void Chassis_SetUltrasonicNormRawRange(uint8_t channel, float min_raw, float max_raw)
+void Chassis_SetSensorNormRawRange(uint8_t channel, float min_raw, float max_raw)
 {
     uint8_t idx;
 
@@ -1012,7 +1061,7 @@ void Control_10ms_Task(void)
     SUPVC_Service_10ms();// 先服务底层驱动，更新原始数据和有效性
     g_state.yaw_meas_deg = JY61P_Data.angle_z;
 
-    update_ultrasonic_pipeline();// 更新超声波处理链，得到归一化距离和 line_error
+    update_sensor_pipeline();// 更新传感器处理链，得到归一化距离和 line_error
     update_wheel_speed_estimation();// 由编码器累计计数反推速度，并更新全局测量值
     update_calibration_state();// 如果在校准模式，累计统计 min/max/sum，并在完成后置 report_pending
 
@@ -1041,7 +1090,7 @@ void Control_10ms_Task(void)
 }
 
 /* 主循环后台任务（非中断）:
- * 仅通过串口1周期发送 6 路超声距离(cm)。 */
+ * VL53L0X 数据轮询与日志输出。 */
 void Control_MainLoop_Task(void)
 {
     static uint32_t sensor_stream_last_ms = 0U;
@@ -1049,18 +1098,7 @@ void Control_MainLoop_Task(void)
 
     SUPVC_Service_MainLoop();
 
-    if ((now - sensor_stream_last_ms) < 100U) {
-        return;
-    }
-    sensor_stream_last_ms = now;
-
-    uart_printf("US6,D1:%.2f,D2:%.2f,D3:%.2f,D4:%.2f,D5:%.2f,D6:%.2f\r\n",
-                SUPVC_GetDistanceCm(1U),
-                SUPVC_GetDistanceCm(2U),
-                SUPVC_GetDistanceCm(3U),
-                SUPVC_GetDistanceCm(4U),
-                SUPVC_GetDistanceCm(5U),
-                SUPVC_GetDistanceCm(6U));
+    /* VL53L0X 数据回传由 supvc.c 内部的驱动负责发送日志 */
 }
 
 /* 单字符命令解析（推荐蓝牙控制方式）:
@@ -1186,7 +1224,6 @@ void UART_Command_ProcessByte(uint8_t cmd)
  * CMD,PID,WHEEL,<kp>,<ki>,<kd>
  * CMD,PID,FRONT,<kp>,<ki>,<kd> ← 设置前对PID参数
  * CMD,PID,REAR,<kp>,<ki>,<kd>  ← 设置后对PID参数
- * CMD,KS103,GET|AUTO|ADDR,<addr7>|MODE,<TRIG|ALT|DIRECT|DIRECT_ALT|AUTO>
  * CMD,PARAM,GET */
 void UART_Command_ProcessLine(const char *line)
 {
@@ -1293,72 +1330,11 @@ void UART_Command_ProcessLine(const char *line)
             uint8_t ch = (uint8_t)atoi(tokens[3]);
             float min_raw = strtof(tokens[4], NULL);
             float max_raw = strtof(tokens[5], NULL);
-            Chassis_SetUltrasonicNormRawRange(ch, min_raw, max_raw);
+            Chassis_SetSensorNormRawRange(ch, min_raw, max_raw);
         }
         return;
     }
 
-    if (str_eq_ci(tokens[1], "KS103")) {
-        if (count < 3U) {
-            return;
-        }
-
-        if (str_eq_ci(tokens[2], "GET")) {
-            uint8_t manual = 0U;
-            uint8_t direct = 0U;
-            uint8_t alt = 0U;
-
-            SUPVC_GetKS103Flags(&manual, &direct, &alt);
-            uart_printf("KS103,ADDR,0x%02X,MANUAL,%u,DIRECT,%u,ALT,%u,RAW,%lu,VALID,%u,DIST,%.2f\r\n",
-                        (unsigned int)SUPVC_GetKS103Address7bit(),
-                        (unsigned int)manual,
-                        (unsigned int)direct,
-                        (unsigned int)alt,
-                        (unsigned long)SUPVC_GetEchoWidthUs(6U),
-                        (unsigned int)SUPVC_IsValid(6U),
-                        SUPVC_GetDistanceCm(6U));
-            return;
-        }
-
-        if (str_eq_ci(tokens[2], "AUTO")) {
-            SUPVC_SetKS103AutoDetect();
-            uart_printf("ACK,KS103,AUTO\r\n");
-            return;
-        }
-
-        if (str_eq_ci(tokens[2], "ADDR") && (count >= 4U)) {
-            unsigned long addr = strtoul(tokens[3], NULL, 0);
-            if ((addr >= 0x08UL) && (addr <= 0x77UL)) {
-                SUPVC_SetKS103Address7bit((uint8_t)addr);
-                uart_printf("ACK,KS103,ADDR,0x%02X\r\n", (unsigned int)addr);
-            } else {
-                uart_printf("ERR,KS103,ADDR\r\n");
-            }
-            return;
-        }
-
-        if (str_eq_ci(tokens[2], "MODE") && (count >= 4U)) {
-            if (str_eq_ci(tokens[3], "TRIG")) {
-                SUPVC_SetKS103Mode(0U, 0U);
-            } else if (str_eq_ci(tokens[3], "ALT")) {
-                SUPVC_SetKS103Mode(0U, 1U);
-            } else if (str_eq_ci(tokens[3], "DIRECT")) {
-                SUPVC_SetKS103Mode(1U, 0U);
-            } else if (str_eq_ci(tokens[3], "DIRECT_ALT")) {
-                SUPVC_SetKS103Mode(1U, 1U);
-            } else if (str_eq_ci(tokens[3], "AUTO")) {
-                SUPVC_SetKS103AutoDetect();
-            } else {
-                uart_printf("ERR,KS103,MODE\r\n");
-                return;
-            }
-
-            uart_printf("ACK,KS103,MODE,%s\r\n", tokens[3]);
-            return;
-        }
-
-        return;
-    }
 
     if (str_eq_ci(tokens[1], "TEL")) {
         if (count < 3U) {

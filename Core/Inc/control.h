@@ -1,4 +1,4 @@
-﻿#ifndef __CONTROL_H
+#ifndef __CONTROL_H
 #define __CONTROL_H
 
 #include "main.h"
@@ -13,8 +13,8 @@
 /* 控制模式状态机。
  * IDLE: 电机停转，仅采样与回传。
  * MANUAL_VEL: 直接跟踪上位机给定的 vx/vy/wz 速度指令。
- * LINE_FOLLOW: 走廊直线模式，利用左右超声差值做外环纠偏。
- * CALIBRATION: 校准模式，仅采集并回传超声原始值统计。 */
+ * LINE_FOLLOW: 走廊直线模式，利用左右测距传感器差值做外环纠偏。
+ * CALIBRATION: 校准模式，仅采集并回传传感器原始值统计。 */
 typedef enum {
     CONTROL_MODE_IDLE = 0,
     CONTROL_MODE_MANUAL_VEL = 1,
@@ -50,10 +50,10 @@ void Chassis_StartLineFollow(float forward_mmps, float line_target);
 void Chassis_SetLineTarget(float line_target);
 /* 停止走廊模式并进入 IDLE。 */
 void Chassis_StopLineFollow(void);
-/* 启动超声校准采样（按通道位掩码，采样数量）。 */
+/* 启动传感器校准采样（按通道位掩码，采样数量）。 */
 void Chassis_StartCalibration(uint8_t channel_mask, uint16_t sample_count);
-/* 手工设置超声归一化上下限（原始值域）。 */
-void Chassis_SetUltrasonicNormRawRange(uint8_t channel, float min_raw, float max_raw);
+/* 手工设置传感器归一化上下限（原始值域）。 */
+void Chassis_SetSensorNormRawRange(uint8_t channel, float min_raw, float max_raw);
 
 /* Legacy helper wrappers kept for compatibility with existing test scripts. */
 void Move_Forward(float speed);

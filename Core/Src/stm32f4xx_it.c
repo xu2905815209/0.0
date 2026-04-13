@@ -333,14 +333,6 @@ void TIM3_IRQHandler(void)
 
 }
 
-/**
-  * @brief This function handles TIM2 global interrupt.
-  */
-void TIM2_IRQHandler(void)
-{
-  extern TIM_HandleTypeDef htim2;
-  HAL_TIM_IRQHandler(&htim2);
-}
 
 /**
   * @brief This function handles TIM4 global interrupt.

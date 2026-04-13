@@ -1,4 +1,4 @@
-﻿/* USER CODE BEGIN Header */
+/* USER CODE BEGIN Header */
 /**
   ******************************************************************************
   * @file    usart.c
@@ -14,7 +14,7 @@
 /* USER CODE BEGIN 0 */
 /* 蓝牙命令策略:
  * - 兼容旧的单字符命令（'0'~'9'）
- * - 支持按行文本命令（如 CMD,KS103,GET），以 CR/LF 结尾 */
+ * - 支持按行文本命令（如 CMD,MODE,LINE），以 CR/LF 结尾 */
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
