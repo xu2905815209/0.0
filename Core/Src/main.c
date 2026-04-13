@@ -39,15 +39,14 @@ int main(void)
    * GPIO/电机/超声/串口/IMU/控制定时器。 */
   MX_GPIO_Init();
   motor_init();
-  SUPVC_Init();
   MX_I2C1_Init();
+  SUPVC_Init();
   MX_USART1_UART_Init();
   JY61P_UART_Init();
   MX_TIM6_Init();
 
   /* 控制模块初始化（参数、PID、状态机）。 */
   Chassis_PID_Init();
-  uart_printf("ACK,BOOT,READY\r\n");
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
   HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);

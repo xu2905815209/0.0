@@ -73,7 +73,7 @@ void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle)
     */
     GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -125,7 +125,7 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 static void MyI2C_Delay(void)
 {
     // 使用HAL库的微秒延迟函数
-    HAL_Delay(1); // 注意：HAL_Delay�?小是1ms，可以替换为更精确的微秒延迟
+    HAL_Delay(1); // 注意：HAL_Delay�?小是1ms，可以替换为更精确的微秒延迟
 }
 
 // 写SCL引脚
@@ -150,7 +150,7 @@ uint8_t MyI2C_R_SDA(void)
     MyI2C_Delay();
     return BitValue;
 }
-//// 软件I2C引脚初始�?
+//// 软件I2C引脚初始�?
 //void MyI2C_Init(void)
 //{
 //    GPIO_InitTypeDef GPIO_InitStructure;
@@ -160,11 +160,11 @@ uint8_t MyI2C_R_SDA(void)
 //    
 //    // 配置GPIO
 //    GPIO_InitStructure.Pin = I2C_SCL_PIN | I2C_SDA_PIN;
-//    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_OD; // �?漏输出模�?
+//    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_OD; // �?漏输出模�?
 //    GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_LOW;
 //    HAL_GPIO_Init(I2C_SCL_PORT, &GPIO_InitStructure);
 //    
-//    // 初始状�?�：SCL和SDA都为高电�?
+//    // 初始状�?�：SCL和SDA都为高电�?
 //    HAL_GPIO_WritePin(I2C_SCL_PORT, I2C_SCL_PIN, GPIO_PIN_SET);
 //    HAL_GPIO_WritePin(I2C_SDA_PORT, I2C_SDA_PIN, GPIO_PIN_SET);
 //}
@@ -186,64 +186,64 @@ void MyI2C_Stop(void)
     MyI2C_W_SDA(1);
 }
 
-// 发�?�一个字�?
+// 发�?�一个字�?
 void MyI2C_SendByte(uint8_t Byte)
 {
     uint8_t count;
     for(count = 0; count < 8; count++)
     {
         MyI2C_W_SDA(Byte & (0x80 >> count));
-        MyI2C_W_SCL(1);  // 从机读数�?
-        MyI2C_W_SCL(0);  // 主机写数�?
+        MyI2C_W_SCL(1);  // 从机读数�?
+        MyI2C_W_SCL(0);  // 主机写数�?
     }
 }
 
-// 接收�?个字�?
+// 接收�?个字�?
 uint8_t MyI2C_ReceiveByte(void)
 {
     uint8_t count, Byte = 0x00;
-    MyI2C_W_SDA(1);  // 主机释放SDA�?
+    MyI2C_W_SDA(1);  // 主机释放SDA�?
     
     for(count = 0; count < 8; count++)
     {
-        MyI2C_W_SCL(1);  // 主机读数�?
+        MyI2C_W_SCL(1);  // 主机读数�?
         if(MyI2C_R_SDA() == 1)
         {
             Byte |= (0x80 >> count);
         }
-        MyI2C_W_SCL(0);  // 从机写数�?
+        MyI2C_W_SCL(0);  // 从机写数�?
     }
     return Byte;
 }
 
-// 发�?�一个应�?
+// 发�?�一个应�?
 void MyI2C_SendAck(uint8_t AckBit)
 {
-    MyI2C_W_SDA(AckBit);  // 发�?�应答位
-    MyI2C_W_SCL(1);        // 从机读应�?
-    MyI2C_W_SCL(0);        // 进入下一个时序单�?
+    MyI2C_W_SDA(AckBit);  // 发�?�应答位
+    MyI2C_W_SCL(1);        // 从机读应�?
+    MyI2C_W_SCL(0);        // 进入下一个时序单�?
 }
 
-// 接收�?个应�?
+// 接收�?个应�?
 uint8_t MyI2C_ReceiveAck(void)
 {
     uint8_t AckBit;
     MyI2C_W_SDA(1);
     MyI2C_W_SCL(1);
     AckBit = MyI2C_R_SDA();
-    MyI2C_W_SCL(0);  // 进入下一个时序单�?
+    MyI2C_W_SCL(0);  // 进入下一个时序单�?
     return AckBit;
 }
 
-// 多字节写�?
+// 多字节写�?
 uint8_t MyI2C_WriteBytes(uint8_t dev, uint8_t reg, uint8_t length, uint8_t* data)
 {
     uint8_t count = 0;
     
     MyI2C_Start();
-    MyI2C_SendByte(dev);        // 发�?�写命令
+    MyI2C_SendByte(dev);        // 发�?�写命令
     MyI2C_ReceiveAck();
-    MyI2C_SendByte(reg);        // 发�?�寄存器地址
+    MyI2C_SendByte(reg);        // 发�?�寄存器地址
     MyI2C_ReceiveAck();
     
     for(count = 0; count < length; count++)

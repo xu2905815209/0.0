@@ -18,13 +18,18 @@ extern int32_t Encoder_TIM5_Count;
 /* 控制周期固定为 10ms，与 TIM6 中断频率一致。 */
 #define CONTROL_DT_S                     0.01f
 #define CONTROL_WHEEL_COUNT              4U
-#define CONTROL_ULTRA_COUNT              3U
+#define CONTROL_ULTRA_COUNT              SUPVC_CHANNEL_COUNT
 #define CONTROL_CMD_MAX_TOKENS           10
 #define CONTROL_CMD_LINE_LEN             96
 #define CONTROL_DEG2RAD                  0.0174532925f
 #define CONTROL_RAD2DEG                  57.2957795f
 #define CONTROL_EPSILON                  0.0001f
 #define CONTROL_LINE_SINGLE_LOSS_LIMIT   30U
+
+#define CONTROL_ULTRA_D1_LEFT_REAR       0U
+#define CONTROL_ULTRA_D2_RIGHT_REAR      1U
+#define CONTROL_ULTRA_D4_RIGHT_FRONT     3U
+#define CONTROL_ULTRA_D5_LEFT_FRONT      4U
 
 /* 全局控制参数:
  * - 超声归一化区间与滤波参数
@@ -129,8 +134,14 @@ typedef struct {
     float line_last_diff;
     uint8_t line_single_loss_ticks;
 
+    /* 新增：状态误差解算相关 */
+    float yaw_target;        /* 偏航角度目标（默认0，即与墙壁平行） */
+    float lat_target;        /* 横向位置目标（默认0，即左右居中） */
+    float yaw_error;         /* 偏航角度误差 = (LF-LR) - (RF-RR) */
+    float lat_error;         /* 横向中心误差 = (LF+LR)/2 - (RF+RR)/2 */
+
     uint8_t yaw_hold_enabled;
-    float yaw_target_deg;
+    float yaw_target_deg;    /* IMU yaw 目标角度（兼容旧接口） */
     float yaw_meas_deg;
 
     float wheel_target_mmps[CONTROL_WHEEL_COUNT];
@@ -145,8 +156,9 @@ typedef struct {
 
     UltrasonicChannelState_t ultra[CONTROL_ULTRA_COUNT];
     WheelControlState_t wheel[CONTROL_WHEEL_COUNT];
-    PID_TypeDef line_pid;
-    PID_TypeDef yaw_pid;
+    PID_TypeDef line_pid;    /* 兼容旧接口 */
+    PID_TypeDef yaw_pid;     /* 偏航角度PID（控制W） */
+    PID_TypeDef lat_pid;     /* 横向位置PID（控制Vy） */
 
     CalibrationState_t calibration;
 
@@ -238,11 +250,18 @@ static void reset_runtime_states(void)
     g_state.cmd_vx_mmps = 0.0f;
     g_state.cmd_vy_mmps = 0.0f;
     g_state.cmd_wz_dps = 0.0f;
-    g_state.line_forward_mmps = 180.0f;
-    g_state.line_target = 0.0f;// 0 表示左右平衡，正值表示向右偏，负值表示向左偏，方向目标值
+    g_state.line_forward_mmps = 300.0f;  /* 默认前进速度增大 */
+    g_state.line_target = 0.0f;
     g_state.line_error = 0.0f;
     g_state.line_last_diff = 0.0f;
     g_state.line_single_loss_ticks = 0U;
+
+    /* 新增：状态误差解算相关初始化 */
+    g_state.yaw_target = 0.0f;      /* 偏航角度目标：与墙壁平行 */
+    g_state.lat_target = 0.0f;      /* 横向位置目标：左右居中 */
+    g_state.yaw_error = 0.0f;
+    g_state.lat_error = 0.0f;
+
     g_state.yaw_hold_enabled = 0U;
     g_state.yaw_target_deg = 0.0f;
     g_state.yaw_meas_deg = 0.0f;
@@ -254,6 +273,7 @@ static void reset_runtime_states(void)
 
     PID_Reset(&g_state.line_pid);
     PID_Reset(&g_state.yaw_pid);
+    PID_Reset(&g_state.lat_pid);
 
     for (i = 0U; i < CONTROL_ULTRA_COUNT; i++) {
         memset((void *)&g_state.ultra[i], 0, sizeof(g_state.ultra[i]));
@@ -276,49 +296,62 @@ static void reset_runtime_states(void)
 }
 
 /* 参数默认值初始化。
- * 这些值是“可跑起步值”，后续建议现场在线调参。 */
+ * 归一化区间设置：靠墙时 ≈ 20，离墙最远时 ≈ 80
+ * raw 值直接使用 cm 单位距离
+ * 根据实测数据校准（2026-04-07） */
 static void init_default_config(void)
 {
-    /* 左右超声归一化区间（基于 2026-03-31 实测）:
-     * 左贴墙: L=191,   R=2258
-     * 中线:   L=1188,  R=1227
-     * 右贴墙: L=2225,  R=197
-     *
-     * 约定:
-     * - min_raw 对应“贴墙近距离”
-     * - max_raw 对应“离墙远距离”
-     * 这样归一化后 0~100 与距离单调一致。 */
-    g_cfg.min_raw[0] = 191.0f;   /* 左超声近墙 */
-    g_cfg.max_raw[0] = 2225.0f;  /* 左超声远墙 */
-    g_cfg.min_raw[1] = 197.0f;   /* 右超声近墙 */
-    g_cfg.max_raw[1] = 2260.0f;  /* 右超声远墙 */
+    /* D1/D2 为 HCSR04
+     * 实测数据：
+     * - D1(左后): 靠墙 4.57cm, 离墙 39.95cm
+     * - D2(右后): 靠墙 4.97cm, 离墙 41.18cm */
+    g_cfg.min_raw[0] = -7.0f;
+    g_cfg.max_raw[0] = 52.0f;
+    g_cfg.min_raw[1] = -7.0f;
+    g_cfg.max_raw[1] = 53.0f;
 
-    /* 前向超声当前未用于闭环，仅保留默认区间。 */
-    g_cfg.min_raw[2] = 200.0f;
-    g_cfg.max_raw[2] = 3800.0f;
+    /* D3 前向超声当前未用于闭环 */
+    g_cfg.min_raw[2] = 2.0f;
+    g_cfg.max_raw[2] = 100.0f;
+
+    /* D4/D5 为 US016 近距档（1m量程）
+     * 实测数据：
+     * - D4(右前): 靠墙 5.87cm, 离墙 55cm
+     * - D5(左前): 靠墙 0.80cm, 离墙 50.97cm */
+    g_cfg.min_raw[3] = -10.0f;
+    g_cfg.max_raw[3] = 72.0f;
+    g_cfg.min_raw[4] = -16.0f;
+    g_cfg.max_raw[4] = 68.0f;
+
+    /* D6(KS103) */
+    g_cfg.min_raw[5] = 5.0f;
+    g_cfg.max_raw[5] = 400.0f;
 
     g_cfg.iir_alpha[0] = 0.25f;
     g_cfg.iir_alpha[1] = 0.25f;
     g_cfg.iir_alpha[2] = 0.18f;
+    g_cfg.iir_alpha[3] = 0.18f;
+    g_cfg.iir_alpha[4] = 0.18f;
+    g_cfg.iir_alpha[5] = 0.22f;
 
     g_cfg.wheel_speed_lpf_alpha = 0.45f;
     g_cfg.max_vx_mmps = 450.0f;
     g_cfg.max_vy_mmps = 450.0f;
     g_cfg.max_wz_dps = 180.0f;
     g_cfg.max_wheel_mmps = 800.0f;
-    g_cfg.line_vy_limit_mmps = 260.0f;
-    g_cfg.line_forward_limit_mmps = 350.0f;
-    g_cfg.chassis_rot_radius_mm = 110.0f;
+    g_cfg.line_vy_limit_mmps = 350.0f;      /* 横移速度上限增大 */
+    g_cfg.line_forward_limit_mmps = 450.0f; /* 前进速度上限增大 */
 
     g_cfg.wheel_pid_kp = 0.08f;
     g_cfg.wheel_pid_ki = 0.015f;
     g_cfg.wheel_pid_kd = 0.0f;
 
-    g_cfg.line_pid_kp = 3.2f;
-    g_cfg.line_pid_ki = 0.10f;
-    g_cfg.line_pid_kd = 0.02f;
+    /* 位置PID参数增大，让小车快速归位 */
+    g_cfg.line_pid_kp = 5.0f;   /* 横向位置P增大 */
+    g_cfg.line_pid_ki = 0.15f;
+    g_cfg.line_pid_kd = 0.05f;
 
-    g_cfg.yaw_pid_kp = 1.0f;
+    g_cfg.yaw_pid_kp = 2.5f;    /* 偏航角度P增大 */
     g_cfg.yaw_pid_ki = 0.0f;
     g_cfg.yaw_pid_kd = 0.0f;
 
@@ -352,6 +385,18 @@ static void init_control_pids(void)
     g_state.line_pid.derivative_alpha = 0.22f;
     g_state.line_pid.output_ramp = 45.0f;
 
+    /* 横向位置PID（控制Vy）：以 Lat_Err 为输入 */
+    PID_Init(&g_state.lat_pid,
+             g_cfg.line_pid_kp,
+             g_cfg.line_pid_ki,
+             g_cfg.line_pid_kd,
+             g_cfg.line_vy_limit_mmps,
+             150.0f);
+    g_state.lat_pid.integral_separation = 35.0f;
+    g_state.lat_pid.derivative_alpha = 0.22f;
+    g_state.lat_pid.output_ramp = 45.0f;
+
+    /* 偏航角度PID（控制W）：以 Yaw_Err 为输入 */
     PID_Init(&g_state.yaw_pid,
              g_cfg.yaw_pid_kp,
              g_cfg.yaw_pid_ki,
@@ -387,15 +432,11 @@ static void set_mode_internal(ControlMode_t mode)
     }
 }
 
-/* 单通道超声处理链:
- * 1) 原始值入队
- * 2) 3点中值抑制毛刺
- * 3) IIR 低通平滑
- * 4) 按通道标定区间归一化到 0~100 */
+/* 单通道超声处理：
+ * 直接使用 supvc 输出的 cm 值，supvc 内部已有滤波，此处不再重复处理 */
 static void update_single_ultrasonic(uint8_t index, uint32_t raw_value, uint8_t valid)
 {
     UltrasonicChannelState_t *ch = &g_state.ultra[index];
-    float median_value;
 
     ch->raw = raw_value;
 
@@ -404,63 +445,99 @@ static void update_single_ultrasonic(uint8_t index, uint32_t raw_value, uint8_t 
         return;
     }
 
-    ch->history[ch->history_index] = raw_value;
-    ch->history_index = (uint8_t)((ch->history_index + 1U) % 3U);
-    if (ch->history_count < 3U) {
-        ch->history_count++;
-    }
-
-    if (ch->history_count < 3U) {
-        median_value = (float)raw_value;
-    } else {
-        median_value = (float)median3_u32(ch->history[0], ch->history[1], ch->history[2]);
-    }
-
-    if (!ch->filter_initialized) {
-        ch->filtered_raw = median_value;
-        ch->filter_initialized = 1U;
-    } else {
-        ch->filtered_raw += g_cfg.iir_alpha[index] * (median_value - ch->filtered_raw);
-    }
-
+    /* 直接使用 supvc 输出的滤波后值，不做额外处理 */
+    ch->filtered_raw = (float)raw_value;
     ch->normalized = normalize_raw_to_0_100(index, ch->filtered_raw);
     ch->valid = 1U;
 }
 
-/* 三通道统一更新（左、右、前）。 */
+/* 多通道统一更新（按 SUPVC 通道序号 1..N）。
+ * 直接使用 cm 单位距离作为 raw 值进行归一化 */
 static void update_ultrasonic_pipeline(void)
 {
-    update_single_ultrasonic(0U, SUPVC_GetEchoWidthUs(1U), SUPVC_IsValid(1U));
-    update_single_ultrasonic(1U, SUPVC_GetEchoWidthUs(2U), SUPVC_IsValid(2U));
-    update_single_ultrasonic(2U, SUPVC_GetEchoWidthUs(3U), SUPVC_IsValid(3U));
+    uint8_t i;
+    float distance_cm;
+
+    for (i = 0U; i < CONTROL_ULTRA_COUNT; i++) {
+        distance_cm = SUPVC_GetDistanceCm((uint8_t)(i + 1U));
+        if (distance_cm < 0.0f) {
+            update_single_ultrasonic(i, 0U, 0U);
+        } else {
+            update_single_ultrasonic(i, (uint32_t)(distance_cm), SUPVC_IsValid((uint8_t)(i + 1U)));
+        }
+    }
 }
 
-/* 车体速度 -> 四轮目标线速度(mm/s)。
- * wz 先转换成等效切向速度，再做麦轮逆运动学分解。 */
-static void body_to_wheels(float vx_mmps,
-                           float vy_mmps,
-                           float wz_dps,
-                           float wheel_targets[CONTROL_WHEEL_COUNT])
+/* ============================================================================
+ * 麦克纳姆轮运动学逆解分配
+ * ============================================================================
+ *
+ * 传感器布局（小车朝向走廊前方）:
+ *     前方
+ *      ↑
+ *  D5(左前/LF)    D4(右前/RF)
+ *     |              |
+ *     |    小车      |
+ *     |              |
+ *  D1(左后/LR)    D2(右后/RR)
+ *
+ * 状态误差解算:
+ * - 偏航角度误差(Yaw_Err): 判断车体与墙壁的平行度
+ *   Yaw_Err = (LF - LR) - (RF - RR)
+ *   >0 表示车头偏右，需要向左自转纠正
+ *
+ * - 横向中心误差(Lat_Err): 判断车体整体偏左还是偏右
+ *   Lat_Err = (LF + LR)/2 - (RF + RR)/2
+ *   >0 表示车体整体偏左，需要向右平移纠正
+ *
+ * 麦轮逆解公式（可通过宏定义调整符号）:
+ * - 左前轮(A) = Vx - Vy - W
+ * - 右前轮(B) = Vx + Vy + W
+ * - 左后轮(C) = Vx + Vy - W
+ * - 右后轮(D) = Vx - Vy + W
+ *
+ * 物理意义:
+ * - Vy > 0: 小车向右横移
+ * - W  > 0: 小车逆时针旋转（车头向左转）
+ * ============================================================================ */
+
+/* 符号调整宏定义（方便现场调车） */
+#define MECANUM_VX_SIGN_A    1.0f   /* 左前轮 Vx 符号 */
+#define MECANUM_VX_SIGN_B    1.0f   /* 右前轮 Vx 符号 */
+#define MECANUM_VX_SIGN_C    1.0f   /* 左后轮 Vx 符号 */
+#define MECANUM_VX_SIGN_D    1.0f   /* 右后轮 Vx 符号 */
+
+#define MECANUM_VY_SIGN_A    1.0f   /* 左前轮 Vy 符号：Vy>0 向右横移 */
+#define MECANUM_VY_SIGN_B   -1.0f   /* 右前轮 Vy 符号：Vy>0 向右横移 */
+#define MECANUM_VY_SIGN_C   -1.0f   /* 左后轮 Vy 符号：Vy>0 向右横移 */
+#define MECANUM_VY_SIGN_D    1.0f   /* 右后轮 Vy 符号：Vy>0 向右横移 */
+
+#define MECANUM_W_SIGN_A    -1.0f   /* 左前轮 W 符号：W>0 逆时针，左轮向后 */
+#define MECANUM_W_SIGN_B     1.0f   /* 右前轮 W 符号：W>0 逆时针，右轮向前 */
+#define MECANUM_W_SIGN_C    -1.0f   /* 左后轮 W 符号：W>0 逆时针，左轮向后 */
+#define MECANUM_W_SIGN_D     1.0f   /* 右后轮 W 符号：W>0 逆时针，右轮向前 */
+
+/* 麦克纳姆轮运动学逆解：Vx/Vy/W -> 四轮目标速度 */
+static void mecanum_inverse_kinematics(float vx_mmps,
+                                       float vy_mmps,
+                                       float wz_dps,
+                                       float wheel_targets[CONTROL_WHEEL_COUNT])
 {
     float vw = wz_dps * CONTROL_DEG2RAD * g_cfg.chassis_rot_radius_mm;
     float max_abs;
     float scale;
 
-    wheel_targets[0] = vx_mmps + vy_mmps - vw;
-    wheel_targets[1] = vx_mmps - vy_mmps + vw;
-    wheel_targets[2] = vx_mmps - vy_mmps - vw;
-    wheel_targets[3] = vx_mmps + vy_mmps + vw;
+    /* 运动学逆解分配（使用宏定义符号） */
+    wheel_targets[0] = MECANUM_VX_SIGN_A * vx_mmps + MECANUM_VY_SIGN_A * vy_mmps + MECANUM_W_SIGN_A * vw;
+    wheel_targets[1] = MECANUM_VX_SIGN_B * vx_mmps + MECANUM_VY_SIGN_B * vy_mmps + MECANUM_W_SIGN_B * vw;
+    wheel_targets[2] = MECANUM_VX_SIGN_C * vx_mmps + MECANUM_VY_SIGN_C * vy_mmps + MECANUM_W_SIGN_C * vw;
+    wheel_targets[3] = MECANUM_VX_SIGN_D * vx_mmps + MECANUM_VY_SIGN_D * vy_mmps + MECANUM_W_SIGN_D * vw;
 
+    /* 速度归一化限幅 */
     max_abs = fabsf(wheel_targets[0]);
-    if (fabsf(wheel_targets[1]) > max_abs) {
-        max_abs = fabsf(wheel_targets[1]);
-    }
-    if (fabsf(wheel_targets[2]) > max_abs) {
-        max_abs = fabsf(wheel_targets[2]);
-    }
-    if (fabsf(wheel_targets[3]) > max_abs) {
-        max_abs = fabsf(wheel_targets[3]);
-    }
+    if (fabsf(wheel_targets[1]) > max_abs) { max_abs = fabsf(wheel_targets[1]); }
+    if (fabsf(wheel_targets[2]) > max_abs) { max_abs = fabsf(wheel_targets[2]); }
+    if (fabsf(wheel_targets[3]) > max_abs) { max_abs = fabsf(wheel_targets[3]); }
 
     if ((max_abs > g_cfg.max_wheel_mmps) && (max_abs > CONTROL_EPSILON)) {
         scale = g_cfg.max_wheel_mmps / max_abs;
@@ -577,68 +654,112 @@ static void apply_wheel_pwm(void)
     apply_single_motor(g_state.wheel_pwm_cmd[3], motor_D);
 }
 
-/* 走廊模式外环:
- * diff = right_norm - left_norm
- * line_error = diff - line_target
- * vy_cmd 由方向环 PID 生成；vx_cmd 来自前进给定。
- * 丢失策略:
- * - 单侧短时丢失: 保持最近 diff
- * - 双侧丢失: 退回 IDLE，防止盲行 */
+/* ============================================================================
+ * 走廊模式外环 - 状态误差解算 + PID闭环控制
+ * ============================================================================
+ *
+ * 传感器布局（小车朝向走廊前方）:
+ *     前方
+ *      ↑
+ *  D5(左前/LF)    D4(右前/RF)
+ *     |              |
+ *     |    小车      |
+ *     |              |
+ *  D1(左后/LR)    D2(右后/RR)
+ *
+ * 状态误差解算:
+ * - 偏航角度误差(Yaw_Err): 判断车体与墙壁的平行度
+ *   Yaw_Err = (LF - LR) - (RF - RR)
+ *   >0 表示车头偏右，需要向左自转纠正（W<0）
+ *
+ * - 横向中心误差(Lat_Err): 判断车体整体偏左还是偏右
+ *   Lat_Err = (LF + LR)/2 - (RF + RR)/2
+ *   >0 表示车体整体偏左，需要向右平移纠正（Vy>0）
+ *
+ * PID闭环控制:
+ * - Vy: 以 Lat_Err 为输入，经过位置式 PID 计算输出
+ * - W:  以 Yaw_Err 为输入，经过位置式 PID 计算输出
+ *
+ * 要求四个传感器都有效才工作
+ * ============================================================================ */
 static void run_line_mode_outer_loop(float *vx_cmd, float *vy_cmd, float *wz_cmd)
 {
-    uint8_t left_valid = g_state.ultra[0].valid;
-    uint8_t right_valid = g_state.ultra[1].valid;
-    float diff = g_state.line_last_diff;
+    uint8_t left_rear_valid = g_state.ultra[CONTROL_ULTRA_D1_LEFT_REAR].valid;
+    uint8_t left_front_valid = g_state.ultra[CONTROL_ULTRA_D5_LEFT_FRONT].valid;
+    uint8_t right_rear_valid = g_state.ultra[CONTROL_ULTRA_D2_RIGHT_REAR].valid;
+    uint8_t right_front_valid = g_state.ultra[CONTROL_ULTRA_D4_RIGHT_FRONT].valid;
 
-    *vx_cmd = clampf_local(g_state.line_forward_mmps,
-                           -g_cfg.line_forward_limit_mmps,
-                           g_cfg.line_forward_limit_mmps);
+    float dist_LF;  /* D5 左前归一化距离 */
+    float dist_RF;  /* D4 右前归一化距离 */
+    float dist_LR;  /* D1 左后归一化距离 */
+    float dist_RR;  /* D2 右后归一化距离 */
 
-    if (left_valid && right_valid) {
-        diff = g_state.ultra[1].normalized - g_state.ultra[0].normalized;
-        g_state.line_last_diff = diff;
-        g_state.line_single_loss_ticks = 0U;
-    } else if (left_valid || right_valid) {
-        if (g_state.line_single_loss_ticks < 255U) {
-            g_state.line_single_loss_ticks++;
-        }
-        if (g_state.line_single_loss_ticks > CONTROL_LINE_SINGLE_LOSS_LIMIT) {
-            diff = g_state.line_target;
-        }
-    } else {
-        /* 双侧都无效时:
-         * 保持 LINE_FOLLOW 模式，不自动退回 IDLE。
-         * 这样开机阶段即使传感器还未稳定，也会在数据恢复后自动进入闭环。 */
-        g_state.line_error = 0.0f;
+    float yaw_error;   /* 偏航角度误差 */
+    float lat_error;   /* 横向中心误差 */
+
+    float vy_output;   /* 平移速度输出 */
+    float wz_output;   /* 自转角速度输出 */
+
+    /* 四个传感器必须都有效 */
+    if (!left_rear_valid || !left_front_valid || !right_rear_valid || !right_front_valid) {
+        g_state.yaw_error = 0.0f;
+        g_state.lat_error = 0.0f;
         *vx_cmd = 0.0f;
         *vy_cmd = 0.0f;
         *wz_cmd = 0.0f;
         return;
     }
 
-    g_state.line_error = diff - g_state.line_target;
+    /* 前进速度：给定基准速度 */
+    *vx_cmd = clampf_local(g_state.line_forward_mmps,
+                           -g_cfg.line_forward_limit_mmps,
+                           g_cfg.line_forward_limit_mmps);
 
-    /* 现场标定发现底盘横移正方向与超声差值误差方向相反，
-     * 这里对方向环输出取反，避免“越纠越偏”。 */
-    *vy_cmd = -PID_Calc(&g_state.line_pid, g_state.line_target, diff, CONTROL_DT_S);
-    *vy_cmd = clampf_local(*vy_cmd, -g_cfg.line_vy_limit_mmps, g_cfg.line_vy_limit_mmps);
+    /* 获取四个传感器归一化值 */
+    dist_LF = g_state.ultra[CONTROL_ULTRA_D5_LEFT_FRONT].normalized;   /* D5 左前 */
+    dist_RF = g_state.ultra[CONTROL_ULTRA_D4_RIGHT_FRONT].normalized;  /* D4 右前 */
+    dist_LR = g_state.ultra[CONTROL_ULTRA_D1_LEFT_REAR].normalized;    /* D1 左后 */
+    dist_RR = g_state.ultra[CONTROL_ULTRA_D2_RIGHT_REAR].normalized;   /* D2 右后 */
 
-    if (g_state.yaw_hold_enabled) {
-        *wz_cmd = PID_Calc(&g_state.yaw_pid, g_state.yaw_target_deg, g_state.yaw_meas_deg, CONTROL_DT_S);
-        *wz_cmd = clampf_local(*wz_cmd, -g_cfg.max_wz_dps, g_cfg.max_wz_dps);
-    } else {
-        *wz_cmd = 0.0f;
-    }
+    /* 状态误差解算 */
+    /* 偏航角度误差：判断车体与墙壁的平行度
+     * Yaw_Err = (LF - LR) - (RF - RR)
+     * >0 表示车头偏右（前部右侧距离更大），需要向左自转纠正 */
+    yaw_error = (dist_LF - dist_LR) - (dist_RF - dist_RR) - g_state.yaw_target;
+    g_state.yaw_error = yaw_error;
+
+    /* 横向中心误差：判断车体整体偏左还是偏右
+     * Lat_Err = (LF + LR)/2 - (RF + RR)/2
+     * >0 表示车体整体偏左，需要向右平移纠正 */
+    lat_error = ((dist_LF + dist_LR) * 0.5f) - ((dist_RF + dist_RR) * 0.5f) - g_state.lat_target;
+    g_state.lat_error = lat_error;
+
+    /* PID闭环控制 */
+    /* 平移速度 Vy：以 Lat_Err 为输入 */
+    vy_output = PID_Calc(&g_state.lat_pid,
+                         g_state.lat_target,
+                         ((dist_LF + dist_LR) * 0.5f) - ((dist_RF + dist_RR) * 0.5f),
+                         CONTROL_DT_S);
+    vy_output = clampf_local(vy_output, -g_cfg.line_vy_limit_mmps, g_cfg.line_vy_limit_mmps);
+    *vy_cmd = vy_output;
+
+    /* 自转角速度 W：以 Yaw_Err 为输入 */
+    wz_output = PID_Calc(&g_state.yaw_pid,
+                         g_state.yaw_target,
+                         (dist_LF - dist_LR) - (dist_RF - dist_RR),
+                         CONTROL_DT_S);
+    wz_output = clampf_local(wz_output, -g_cfg.max_wz_dps, g_cfg.max_wz_dps);
+    *wz_cmd = wz_output;
 }
 
 /* 四轮速度内环:
- * 外环给出 vx/vy/wz -> 逆解成轮目标 -> 每轮 PID 输出 PWM。 */
+ * 外环给出 Vx/Vy/W -> 麦轮逆解成四轮目标 -> 每轮PID输出PWM */
 static void run_speed_loop(float vx_cmd, float vy_cmd, float wz_cmd)
 {
     uint8_t i;
     uint8_t stop_mode;
 
-    body_to_wheels(vx_cmd, vy_cmd, wz_cmd, g_state.wheel_target_mmps);
+    mecanum_inverse_kinematics(vx_cmd, vy_cmd, wz_cmd, g_state.wheel_target_mmps);
 
     stop_mode = (g_state.mode == CONTROL_MODE_IDLE) || (g_state.mode == CONTROL_MODE_CALIBRATION);
     if (stop_mode) {
@@ -748,28 +869,23 @@ static uint8_t tokenize_csv(char *input, char *tokens[], uint8_t max_tokens)
 }
 
 /* 解析校准命令中的通道字段:
- * \"1\"/\"2\"/\"3\" 或 \"ALL\" -> 位掩码。 */
+ * "1".."N" 或 "ALL" -> 位掩码。 */
 static uint8_t parse_channel_mask(const char *token, uint8_t *mask)
 {
+    int channel_id;
+
     if ((token == NULL) || (mask == NULL)) {
         return 0U;
     }
 
     if (str_eq_ci(token, "ALL")) {
-        *mask = 0x07U;
+        *mask = (uint8_t)((1U << CONTROL_ULTRA_COUNT) - 1U);
         return 1U;
     }
 
-    if (str_eq_ci(token, "1")) {
-        *mask = 0x01U;
-        return 1U;
-    }
-    if (str_eq_ci(token, "2")) {
-        *mask = 0x02U;
-        return 1U;
-    }
-    if (str_eq_ci(token, "3")) {
-        *mask = 0x04U;
+    channel_id = atoi(token);
+    if ((channel_id >= 1) && (channel_id <= (int)CONTROL_ULTRA_COUNT)) {
+        *mask = (uint8_t)(1U << ((uint8_t)channel_id - 1U));
         return 1U;
     }
 
@@ -782,7 +898,6 @@ void Chassis_PID_Init(void)
     init_default_config();
     init_control_pids();
     reset_runtime_states();
-    uart_printf("ACK,INIT,OK\r\n");
 }
 
 /* 对外复位接口。 */
@@ -909,7 +1024,7 @@ void Control_10ms_Task(void)
             break;
 
         case CONTROL_MODE_LINE_FOLLOW:// 走廊模式外环生成 vx/vy/wz 给内环
-            run_line_mode_outer_loop(&vx_cmd, &vy_cmd, &wz_cmd);//方向环计算得到 vy_cmd 和 wz_cmd，vx_cmd 给速度环
+            run_line_mode_outer_loop(&vx_cmd, &vy_cmd, &wz_cmd);
             break;
 
         case CONTROL_MODE_CALIBRATION:// 校准模式不控制运动，仅采样回传
@@ -921,92 +1036,31 @@ void Control_10ms_Task(void)
             break;
     }
 
-    run_speed_loop(vx_cmd, vy_cmd, wz_cmd);// 内环下发 PWM，越快越好以降低延迟，此为速度环计算得到 PWM 给电机
+    run_speed_loop(vx_cmd, vy_cmd, wz_cmd);// 内环下发 PWM
     update_telemetry_snapshot();// 采集当前周期的 telemetry 快照，等待主循环发送
 }
 
 /* 主循环后台任务（非中断）:
- * - 发送校准结果
- * - 发送 FireWater 遥测 */
+ * 仅通过串口1周期发送 6 路超声距离(cm)。 */
 void Control_MainLoop_Task(void)
 {
-    CalibrationState_t cal_copy;
-    static uint32_t raw_stream_last_ms = 0U;
+    static uint32_t sensor_stream_last_ms = 0U;
+    uint32_t now = HAL_GetTick();
 
-    if (g_state.calibration.report_pending) {
-        uint8_t ch;
+    SUPVC_Service_MainLoop();
 
-        __disable_irq();
-        cal_copy = g_state.calibration;
-        g_state.calibration.report_pending = 0U;
-        __enable_irq();
-
-        for (ch = 0U; ch < CONTROL_ULTRA_COUNT; ch++) {
-            uint8_t bit = (uint8_t)(1U << ch);
-            float avg;
-
-            if ((cal_copy.channel_mask & bit) == 0U) {
-                continue;
-            }
-
-            if (cal_copy.collected_samples == 0U) {
-                avg = 0.0f;
-            } else {
-                avg = (float)((double)cal_copy.sum_raw[ch] / (double)cal_copy.collected_samples);
-            }
-
-            uart_printf("CAL,%u,%lu,%lu,%.2f\r\n",
-                        (unsigned int)(ch + 1U),
-                        (unsigned long)cal_copy.min_raw[ch],
-                        (unsigned long)cal_copy.max_raw[ch],
-                        avg);
-        }
+    if ((now - sensor_stream_last_ms) < 100U) {
+        return;
     }
+    sensor_stream_last_ms = now;
 
-    if (g_cfg.telemetry_enabled && g_state.telemetry_pending) {
-        TelemetrySnapshot_t snap;
-
-        __disable_irq();
-        snap = g_state.telemetry_snapshot;
-        g_state.telemetry_pending = 0U;
-        __enable_irq();
-
-        /* FireWater 固定通道顺序:
-         * mode_id,time_ms,left_raw,right_raw,front_raw,left_norm,right_norm,
-         * line_error,vx_meas,vy_meas,wz_meas,yaw_deg */
-        uart_printf("%lu,%lu,%.0f,%.0f,%.0f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f\n",
-                    (unsigned long)snap.mode_id,
-                    (unsigned long)snap.time_ms,
-                    snap.left_raw,
-                    snap.right_raw,
-                    snap.front_raw,
-                    snap.left_norm,
-                    snap.right_norm,
-                    snap.line_error,
-                    snap.vx_meas,
-                    snap.vy_meas,
-                    snap.wz_meas,
-                    snap.yaw_deg);
-    }
-
-    /* 校准观测模式: 周期输出三路超声原始值，便于人工摆位采样。
-     * 输出格式:
-     * RAW,left_raw,right_raw,front_raw,left_valid,right_valid,front_valid */
-    if (g_state.mode == CONTROL_MODE_CALIBRATION) {
-        uint32_t now = HAL_GetTick();
-        if ((now - raw_stream_last_ms) >= 100U) { /* 10Hz */
-            raw_stream_last_ms = now;
-            uart_printf("RAW,%lu,%lu,%lu,%u,%u,%u\r\n",
-                        (unsigned long)g_state.ultra[0].raw,
-                        (unsigned long)g_state.ultra[1].raw,
-                        (unsigned long)g_state.ultra[2].raw,
-                        (unsigned int)g_state.ultra[0].valid,
-                        (unsigned int)g_state.ultra[1].valid,
-                        (unsigned int)g_state.ultra[2].valid);
-        }
-    } else {
-        raw_stream_last_ms = HAL_GetTick();
-    }
+    uart_printf("US6,D1:%.2f,D2:%.2f,D3:%.2f,D4:%.2f,D5:%.2f,D6:%.2f\r\n",
+                SUPVC_GetDistanceCm(1U),
+                SUPVC_GetDistanceCm(2U),
+                SUPVC_GetDistanceCm(3U),
+                SUPVC_GetDistanceCm(4U),
+                SUPVC_GetDistanceCm(5U),
+                SUPVC_GetDistanceCm(6U));
 }
 
 /* 单字符命令解析（推荐蓝牙控制方式）:
@@ -1019,11 +1073,18 @@ void Control_MainLoop_Task(void)
  * 7: line_target -5
  * 8: 前进速度 +20 mm/s（上限保护）
  * 9: 前进速度 -20 mm/s（下限保护）
- * 0: 复位控制状态 */
+ * 0: 复位控制状态
+ * [/: 前对目标 -5（小车前部偏左）
+ * ]: 前对目标 +5（小车前部偏右）
+ * .: 后对目标 -5（小车后部偏左）
+ * ,: 后对目标 +5（小车后部偏右）
+ * ?: 查询当前状态 */
 void UART_Command_ProcessByte(uint8_t cmd)
 {
     switch (cmd) {
         case '1':
+            PID_Reset(&g_state.lat_pid);
+            PID_Reset(&g_state.yaw_pid);
             Chassis_StartLineFollow(g_state.line_forward_mmps, g_state.line_target);
             uart_printf("ACK,1,LINE_ON\r\n");
             break;
@@ -1045,12 +1106,12 @@ void UART_Command_ProcessByte(uint8_t cmd)
             uart_printf("ACK,5,CAL_MODE_ON\r\n");
             break;
         case '6':
-            Chassis_SetLineTarget(g_state.line_target + 5.0f);
-            uart_printf("ACK,6,TGT,%.1f\r\n", g_state.line_target);
+            g_state.lat_target = clampf_local(g_state.lat_target + 5.0f, -100.0f, 100.0f);
+            uart_printf("ACK,LAT_TGT,%.1f\r\n", g_state.lat_target);
             break;
         case '7':
-            Chassis_SetLineTarget(g_state.line_target - 5.0f);
-            uart_printf("ACK,7,TGT,%.1f\r\n", g_state.line_target);
+            g_state.lat_target = clampf_local(g_state.lat_target - 5.0f, -100.0f, 100.0f);
+            uart_printf("ACK,LAT_TGT,%.1f\r\n", g_state.lat_target);
             break;
         case '8':
             g_state.line_forward_mmps = clampf_local(g_state.line_forward_mmps + 20.0f,
@@ -1068,6 +1129,40 @@ void UART_Command_ProcessByte(uint8_t cmd)
             Chassis_Control_ResetState();
             uart_printf("ACK,0,RESET\r\n");
             break;
+        /* 偏航角度目标调整 */
+        case '[':
+            g_state.yaw_target = clampf_local(g_state.yaw_target - 5.0f, -100.0f, 100.0f);
+            uart_printf("ACK,YAW_TGT,%.1f\r\n", g_state.yaw_target);
+            break;
+        case ']':
+            g_state.yaw_target = clampf_local(g_state.yaw_target + 5.0f, -100.0f, 100.0f);
+            uart_printf("ACK,YAW_TGT,%.1f\r\n", g_state.yaw_target);
+            break;
+        /* 横向位置目标调整 */
+        case '.':
+            g_state.lat_target = clampf_local(g_state.lat_target - 5.0f, -100.0f, 100.0f);
+            uart_printf("ACK,LAT_TGT,%.1f\r\n", g_state.lat_target);
+            break;
+        case ',':
+            g_state.lat_target = clampf_local(g_state.lat_target + 5.0f, -100.0f, 100.0f);
+            uart_printf("ACK,LAT_TGT,%.1f\r\n", g_state.lat_target);
+            break;
+        /* 查询当前状态 */
+        case '?':
+            uart_printf("STATE,MODE,%u,VX,%.1f,YAW_TGT,%.1f,LAT_TGT,%.1f\r\n",
+                        (unsigned int)g_state.mode,
+                        g_state.line_forward_mmps,
+                        g_state.yaw_target,
+                        g_state.lat_target);
+            uart_printf("STATE,YAW_ERR,%.2f,LAT_ERR,%.2f\r\n",
+                        g_state.yaw_error,
+                        g_state.lat_error);
+            uart_printf("STATE,D1,%.1f,D2,%.1f,D4,%.1f,D5,%.1f\r\n",
+                        g_state.ultra[0].normalized,
+                        g_state.ultra[1].normalized,
+                        g_state.ultra[3].normalized,
+                        g_state.ultra[4].normalized);
+            break;
         default:
             break;
     }
@@ -1080,12 +1175,18 @@ void UART_Command_ProcessByte(uint8_t cmd)
  * CMD,LINE,START,<vx>,<target>
  * CMD,LINE,TARGET,<target>
  * CMD,LINE,STOP
+ * CMD,PAIR,FRONT,<target>      ← 设置前对目标（控制小车前部）
+ * CMD,PAIR,REAR,<target>       ← 设置后对目标（控制小车后部）
+ * CMD,PAIR,GET                 ← 查询前后对状态
  * CMD,CAL,START,<1|2|3|ALL>,<samples>
  * CMD,CAL,SET,<ch>,<min_raw>,<max_raw>
  * CMD,TEL,ON|OFF
  * CMD,YAW,ON|OFF|TARGET,<deg>
  * CMD,PID,LINE,<kp>,<ki>,<kd>
  * CMD,PID,WHEEL,<kp>,<ki>,<kd>
+ * CMD,PID,FRONT,<kp>,<ki>,<kd> ← 设置前对PID参数
+ * CMD,PID,REAR,<kp>,<ki>,<kd>  ← 设置后对PID参数
+ * CMD,KS103,GET|AUTO|ADDR,<addr7>|MODE,<TRIG|ALT|DIRECT|DIRECT_ALT|AUTO>
  * CMD,PARAM,GET */
 void UART_Command_ProcessLine(const char *line)
 {
@@ -1138,11 +1239,39 @@ void UART_Command_ProcessLine(const char *line)
         }
 
         if (str_eq_ci(tokens[2], "START") && (count >= 5U)) {
+            PID_Reset(&g_state.lat_pid);
+            PID_Reset(&g_state.yaw_pid);
             Chassis_StartLineFollow(strtof(tokens[3], NULL), strtof(tokens[4], NULL));
         } else if (str_eq_ci(tokens[2], "TARGET") && (count >= 4U)) {
-            Chassis_SetLineTarget(strtof(tokens[3], NULL));
+            g_state.lat_target = clampf_local(strtof(tokens[3], NULL), -100.0f, 100.0f);
         } else if (str_eq_ci(tokens[2], "STOP")) {
             Chassis_StopLineFollow();
+        }
+        return;
+    }
+
+    /* 误差目标设置命令 */
+    if (str_eq_ci(tokens[1], "ERR")) {
+        if (count < 3U) {
+            return;
+        }
+
+        if (str_eq_ci(tokens[2], "YAW") && (count >= 4U)) {
+            g_state.yaw_target = clampf_local(strtof(tokens[3], NULL), -100.0f, 100.0f);
+            uart_printf("ACK,ERR,YAW,%.1f\r\n", g_state.yaw_target);
+        } else if (str_eq_ci(tokens[2], "LAT") && (count >= 4U)) {
+            g_state.lat_target = clampf_local(strtof(tokens[3], NULL), -100.0f, 100.0f);
+            uart_printf("ACK,ERR,LAT,%.1f\r\n", g_state.lat_target);
+        } else if (str_eq_ci(tokens[2], "GET")) {
+            uart_printf("ERR,YAW_TGT,%.1f,YAW_ERR,%.2f\r\n",
+                        g_state.yaw_target, g_state.yaw_error);
+            uart_printf("ERR,LAT_TGT,%.1f,LAT_ERR,%.2f\r\n",
+                        g_state.lat_target, g_state.lat_error);
+            uart_printf("ERR,D1,%.1f,D2,%.1f,D4,%.1f,D5,%.1f\r\n",
+                        g_state.ultra[0].normalized,
+                        g_state.ultra[1].normalized,
+                        g_state.ultra[3].normalized,
+                        g_state.ultra[4].normalized);
         }
         return;
     }
@@ -1166,6 +1295,68 @@ void UART_Command_ProcessLine(const char *line)
             float max_raw = strtof(tokens[5], NULL);
             Chassis_SetUltrasonicNormRawRange(ch, min_raw, max_raw);
         }
+        return;
+    }
+
+    if (str_eq_ci(tokens[1], "KS103")) {
+        if (count < 3U) {
+            return;
+        }
+
+        if (str_eq_ci(tokens[2], "GET")) {
+            uint8_t manual = 0U;
+            uint8_t direct = 0U;
+            uint8_t alt = 0U;
+
+            SUPVC_GetKS103Flags(&manual, &direct, &alt);
+            uart_printf("KS103,ADDR,0x%02X,MANUAL,%u,DIRECT,%u,ALT,%u,RAW,%lu,VALID,%u,DIST,%.2f\r\n",
+                        (unsigned int)SUPVC_GetKS103Address7bit(),
+                        (unsigned int)manual,
+                        (unsigned int)direct,
+                        (unsigned int)alt,
+                        (unsigned long)SUPVC_GetEchoWidthUs(6U),
+                        (unsigned int)SUPVC_IsValid(6U),
+                        SUPVC_GetDistanceCm(6U));
+            return;
+        }
+
+        if (str_eq_ci(tokens[2], "AUTO")) {
+            SUPVC_SetKS103AutoDetect();
+            uart_printf("ACK,KS103,AUTO\r\n");
+            return;
+        }
+
+        if (str_eq_ci(tokens[2], "ADDR") && (count >= 4U)) {
+            unsigned long addr = strtoul(tokens[3], NULL, 0);
+            if ((addr >= 0x08UL) && (addr <= 0x77UL)) {
+                SUPVC_SetKS103Address7bit((uint8_t)addr);
+                uart_printf("ACK,KS103,ADDR,0x%02X\r\n", (unsigned int)addr);
+            } else {
+                uart_printf("ERR,KS103,ADDR\r\n");
+            }
+            return;
+        }
+
+        if (str_eq_ci(tokens[2], "MODE") && (count >= 4U)) {
+            if (str_eq_ci(tokens[3], "TRIG")) {
+                SUPVC_SetKS103Mode(0U, 0U);
+            } else if (str_eq_ci(tokens[3], "ALT")) {
+                SUPVC_SetKS103Mode(0U, 1U);
+            } else if (str_eq_ci(tokens[3], "DIRECT")) {
+                SUPVC_SetKS103Mode(1U, 0U);
+            } else if (str_eq_ci(tokens[3], "DIRECT_ALT")) {
+                SUPVC_SetKS103Mode(1U, 1U);
+            } else if (str_eq_ci(tokens[3], "AUTO")) {
+                SUPVC_SetKS103AutoDetect();
+            } else {
+                uart_printf("ERR,KS103,MODE\r\n");
+                return;
+            }
+
+            uart_printf("ACK,KS103,MODE,%s\r\n", tokens[3]);
+            return;
+        }
+
         return;
     }
 
@@ -1231,17 +1422,49 @@ void UART_Command_ProcessLine(const char *line)
                 g_state.wheel[i].pid.derivative_alpha = 0.25f;
                 g_state.wheel[i].pid.output_ramp = 12.0f;
             }
+        } else if (str_eq_ci(tokens[2], "LAT") && (count >= 6U)) {
+            /* 横向位置PID参数设置 */
+            float kp = strtof(tokens[3], NULL);
+            float ki = strtof(tokens[4], NULL);
+            float kd = strtof(tokens[5], NULL);
+            PID_Init(&g_state.lat_pid, kp, ki, kd, g_cfg.line_vy_limit_mmps, 150.0f);
+            g_state.lat_pid.integral_separation = 35.0f;
+            g_state.lat_pid.derivative_alpha = 0.22f;
+            g_state.lat_pid.output_ramp = 45.0f;
+            uart_printf("ACK,PID,LAT,%.3f,%.3f,%.3f\r\n", kp, ki, kd);
+        } else if (str_eq_ci(tokens[2], "YAW") && (count >= 6U)) {
+            /* 偏航角度PID参数设置 */
+            float kp = strtof(tokens[3], NULL);
+            float ki = strtof(tokens[4], NULL);
+            float kd = strtof(tokens[5], NULL);
+            PID_Init(&g_state.yaw_pid, kp, ki, kd, g_cfg.max_wz_dps, 90.0f);
+            g_state.yaw_pid.integral_separation = 45.0f;
+            g_state.yaw_pid.derivative_alpha = 0.20f;
+            g_state.yaw_pid.output_ramp = 15.0f;
+            uart_printf("ACK,PID,YAW,%.3f,%.3f,%.3f\r\n", kp, ki, kd);
         }
         return;
     }
 
     if (str_eq_ci(tokens[1], "PARAM") && (count >= 3U) && str_eq_ci(tokens[2], "GET")) {
+        uint8_t ch;
         uart_printf("PARAM,MODE,%u\r\n", (unsigned int)g_state.mode);
-        uart_printf("PARAM,RANGE,1,%.1f,%.1f\r\n", g_cfg.min_raw[0], g_cfg.max_raw[0]);
-        uart_printf("PARAM,RANGE,2,%.1f,%.1f\r\n", g_cfg.min_raw[1], g_cfg.max_raw[1]);
-        uart_printf("PARAM,RANGE,3,%.1f,%.1f\r\n", g_cfg.min_raw[2], g_cfg.max_raw[2]);
+        uart_printf("PARAM,VX,%.1f,YAW_TGT,%.1f,LAT_TGT,%.1f\r\n",
+                    g_state.line_forward_mmps,
+                    g_state.yaw_target,
+                    g_state.lat_target);
+        for (ch = 0U; ch < CONTROL_ULTRA_COUNT; ch++) {
+            uart_printf("PARAM,RANGE,%u,%.1f,%.1f\r\n",
+                        (unsigned int)(ch + 1U),
+                        g_cfg.min_raw[ch],
+                        g_cfg.max_raw[ch]);
+        }
         uart_printf("PARAM,LINE,%.3f,%.3f,%.3f\r\n", g_cfg.line_pid_kp, g_cfg.line_pid_ki, g_cfg.line_pid_kd);
         uart_printf("PARAM,WHEEL,%.3f,%.3f,%.3f\r\n", g_cfg.wheel_pid_kp, g_cfg.wheel_pid_ki, g_cfg.wheel_pid_kd);
+        uart_printf("PARAM,LAT_PID,%.3f,%.3f,%.3f\r\n",
+                    g_state.lat_pid.Kp, g_state.lat_pid.Ki, g_state.lat_pid.Kd);
+        uart_printf("PARAM,YAW_PID,%.3f,%.3f,%.3f\r\n",
+                    g_state.yaw_pid.Kp, g_state.yaw_pid.Ki, g_state.yaw_pid.Kd);
         return;
     }
 }

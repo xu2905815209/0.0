@@ -12,13 +12,15 @@
 #include "control.h"
 
 /* USER CODE BEGIN 0 */
-/* 蓝牙命令策略（简化版）:
- * - 只接收单字符命令（如 '1'、'2'、'3'）
- * - 中断里直接分发，不做复杂字符串解析 */
+/* 蓝牙命令策略:
+ * - 兼容旧的单字符命令（'0'~'9'）
+ * - 支持按行文本命令（如 CMD,KS103,GET），以 CR/LF 结尾 */
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart1;
 static uint8_t bluetooth_rx_byte = 0;
+static char bluetooth_line_buf[96];
+static uint8_t bluetooth_line_len = 0U;
 
 /* USART1 init function */
 void MX_USART1_UART_Init(void)
@@ -95,8 +97,29 @@ void Bluetooth_UART_RxCallback(UART_HandleTypeDef *huart)
     }
 
     byte = bluetooth_rx_byte;
-    if ((byte >= 0x20U) && (byte <= 0x7EU)) {
-        UART_Command_ProcessByte(byte);
+
+  if ((byte == '\r') || (byte == '\n')) {
+    if (bluetooth_line_len > 0U) {
+      bluetooth_line_buf[bluetooth_line_len] = '\0';
+      UART_Command_ProcessLine(bluetooth_line_buf);
+      bluetooth_line_len = 0U;
+    }
+
+    Bluetooth_UART_StartReceive();
+    return;
+  }
+
+  if ((byte >= 0x20U) && (byte <= 0x7EU)) {
+    if ((bluetooth_line_len == 0U) && (byte >= '0') && (byte <= '9')) {
+      UART_Command_ProcessByte(byte);
+    } else {
+      if (bluetooth_line_len < (sizeof(bluetooth_line_buf) - 1U)) {
+        bluetooth_line_buf[bluetooth_line_len++] = (char)byte;
+      } else {
+        /* 溢出保护：丢弃本行，等待下一次换行重新同步。 */
+        bluetooth_line_len = 0U;
+      }
+    }
     }
 
     Bluetooth_UART_StartReceive();
@@ -104,7 +127,7 @@ void Bluetooth_UART_RxCallback(UART_HandleTypeDef *huart)
 
 void Bluetooth_UART_ProcessPending(void)
 {
-    /* 单字符模式下无需命令队列，保留空函数以兼容主循环调用。 */
+  /* 当前命令在接收中断内闭环处理，主循环阶段无需额外动作。 */
 }
 
 int uart_printf(const char *fmt, ...)
