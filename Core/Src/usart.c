@@ -91,12 +91,19 @@ void Bluetooth_UART_StartReceive(void)
 void Bluetooth_UART_RxCallback(UART_HandleTypeDef *huart)
 {
     uint8_t byte;
+    uint8_t is_single_char_cmd;
 
     if (huart->Instance != USART1) {
         return;
     }
 
     byte = bluetooth_rx_byte;
+    is_single_char_cmd = ((byte >= '0') && (byte <= '9')) ||
+                         (byte == '?') ||
+                         (byte == '[') ||
+                         (byte == ']') ||
+                         (byte == '.') ||
+                         (byte == ',');
 
   if ((byte == '\r') || (byte == '\n')) {
     if (bluetooth_line_len > 0U) {
@@ -110,7 +117,7 @@ void Bluetooth_UART_RxCallback(UART_HandleTypeDef *huart)
   }
 
   if ((byte >= 0x20U) && (byte <= 0x7EU)) {
-    if ((bluetooth_line_len == 0U) && (byte >= '0') && (byte <= '9')) {
+    if ((bluetooth_line_len == 0U) && is_single_char_cmd) {
       UART_Command_ProcessByte(byte);
     } else {
       if (bluetooth_line_len < (sizeof(bluetooth_line_buf) - 1U)) {

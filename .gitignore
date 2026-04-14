@@ -9,6 +9,7 @@ Thumbs.db
 .vscode/*.log
 .vscode/*.lock
 *.code-workspace
+.venv/
 
 # Keil uVision user/session files
 *.uvguix.*
