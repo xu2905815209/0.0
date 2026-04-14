@@ -28,6 +28,9 @@ extern int32_t Encoder_TIM5_Count;
 #define CONTROL_TUNE_PERIOD_MS           120U
 #define CONTROL_WHEEL_START_PWM_MIN      18.0f
 #define CONTROL_WHEEL_START_SPEED_MIN    8.0f
+#define CONTROL_TUNE_PERIOD_MS           120U
+#define CONTROL_WHEEL_START_PWM_MIN      18.0f
+#define CONTROL_WHEEL_START_SPEED_MIN    8.0f
 
 /* 传感器通道布局映射（SUPVC 通道号从 0 开始）:
  * CH1(idx=0) = 前方(Front),  CH2(idx=1) = 后方(Rear)
@@ -116,27 +119,16 @@ typedef struct {
 typedef struct {
     uint32_t mode_id;
     uint32_t time_ms;
-    float dist_lf;
-    float dist_rf;
-    float dist_lr;
-    float dist_rr;
-    float dist_front;
-    float dist_rear;
-    float yaw_error;
-    float lat_error;
-    float vx_cmd;
-    float vy_cmd;
-    float wz_cmd;
+    float left_raw;
+    float right_raw;
+    float front_raw;
+    float left_norm;
+    float right_norm;
+    float line_error;
     float vx_meas;
     float vy_meas;
     float wz_meas;
     float yaw_deg;
-    float wheel_target[CONTROL_WHEEL_COUNT];
-    float wheel_meas[CONTROL_WHEEL_COUNT];
-    float wheel_pwm[CONTROL_WHEEL_COUNT];
-    uint32_t raw_distance[CONTROL_ULTRA_COUNT];
-    uint32_t raw_valid_mask;
-    uint32_t valid_mask;
 } TelemetrySnapshot_t;
 
 /* 控制主状态:
@@ -925,56 +917,21 @@ static void update_calibration_state(void)
 /* 采集本周期快照，交给主循环统一输出 FireWater。 */
 static void update_telemetry_snapshot(float vx_cmd, float vy_cmd, float wz_cmd)
 {
-    uint32_t valid_mask = 0U;
-    uint32_t raw_valid_mask = 0U;
-    uint8_t i;
-
     g_state.telemetry_snapshot.mode_id = (uint32_t)g_state.mode;
     g_state.telemetry_snapshot.time_ms = HAL_GetTick();
 
-    g_state.telemetry_snapshot.dist_front = g_state.ultra[SENSOR_FRONT].valid ?
-                                            g_state.ultra[SENSOR_FRONT].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.dist_rear = g_state.ultra[SENSOR_REAR].valid ?
-                                           g_state.ultra[SENSOR_REAR].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.dist_lf = g_state.ultra[SENSOR_LEFT_FRONT].valid ?
-                                         g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.dist_rf = g_state.ultra[SENSOR_RIGHT_FRONT].valid ?
-                                         g_state.ultra[SENSOR_RIGHT_FRONT].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.dist_lr = g_state.ultra[SENSOR_LEFT_REAR].valid ?
-                                         g_state.ultra[SENSOR_LEFT_REAR].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.dist_rr = g_state.ultra[SENSOR_RIGHT_REAR].valid ?
-                                         g_state.ultra[SENSOR_RIGHT_REAR].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.left_raw = (float)g_state.ultra[SENSOR_LEFT_FRONT].raw;
+    g_state.telemetry_snapshot.right_raw = (float)g_state.ultra[SENSOR_RIGHT_FRONT].raw;
+    g_state.telemetry_snapshot.front_raw = (float)g_state.ultra[SENSOR_FRONT].raw;
 
-    g_state.telemetry_snapshot.yaw_error = g_state.yaw_error;
-    g_state.telemetry_snapshot.lat_error = g_state.lat_error;
-    g_state.telemetry_snapshot.vx_cmd = vx_cmd;
-    g_state.telemetry_snapshot.vy_cmd = vy_cmd;
-    g_state.telemetry_snapshot.wz_cmd = wz_cmd;
+    g_state.telemetry_snapshot.left_norm = g_state.ultra[SENSOR_LEFT_FRONT].valid ? g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.right_norm = g_state.ultra[SENSOR_RIGHT_FRONT].valid ? g_state.ultra[SENSOR_RIGHT_FRONT].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.line_error = g_state.line_error;
 
     g_state.telemetry_snapshot.vx_meas = g_state.vx_meas_mmps;
     g_state.telemetry_snapshot.vy_meas = g_state.vy_meas_mmps;
     g_state.telemetry_snapshot.wz_meas = g_state.wz_meas_dps;
     g_state.telemetry_snapshot.yaw_deg = g_state.yaw_meas_deg;
-
-    for (i = 0U; i < CONTROL_WHEEL_COUNT; i++) {
-        g_state.telemetry_snapshot.wheel_target[i] = g_state.wheel_target_mmps[i];
-        g_state.telemetry_snapshot.wheel_meas[i] = g_state.wheel_meas_mmps[i];
-        g_state.telemetry_snapshot.wheel_pwm[i] = g_state.wheel_pwm_cmd[i];
-    }
-
-    for (i = 0U; i < CONTROL_ULTRA_COUNT; i++) {
-        g_state.telemetry_snapshot.raw_distance[i] = g_state.ultra[i].raw;
-        if (g_state.ultra[i].valid) {
-            raw_valid_mask |= (1UL << i);
-        }
-    }
-
-    if (g_state.ultra[SENSOR_LEFT_FRONT].valid)  { valid_mask |= (1U << SENSOR_LEFT_FRONT); }
-    if (g_state.ultra[SENSOR_RIGHT_FRONT].valid) { valid_mask |= (1U << SENSOR_RIGHT_FRONT); }
-    if (g_state.ultra[SENSOR_LEFT_REAR].valid)   { valid_mask |= (1U << SENSOR_LEFT_REAR); }
-    if (g_state.ultra[SENSOR_RIGHT_REAR].valid)  { valid_mask |= (1U << SENSOR_RIGHT_REAR); }
-    g_state.telemetry_snapshot.raw_valid_mask = raw_valid_mask;
-    g_state.telemetry_snapshot.valid_mask = valid_mask;
 
     if (g_cfg.telemetry_enabled) {
         g_state.telemetry_pending = 1U;
@@ -1232,19 +1189,7 @@ void Control_MainLoop_Task(void)
 
     SUPVC_Service_MainLoop();
 
-    if (g_cfg.telemetry_enabled &&
-        g_state.telemetry_pending &&
-        ((now - sensor_stream_last_ms) >= CONTROL_TUNE_PERIOD_MS)) {
-        sensor_stream_last_ms = now;
-        g_state.telemetry_pending = 0U;
-
-        /* FireWater 推荐格式: <name>:ch0,ch1,...,chN\n */
-        if (g_state.mode == CONTROL_MODE_LINE_FOLLOW) {
-            emit_tune_frame();
-        } else if (g_state.mode == CONTROL_MODE_CALIBRATION) {
-            emit_cal_frame();
-        }
-    }
+    /* VL53L0X 数据回传由 supvc.c 内部的驱动负责发送日志 */
 }
 
 /* 单字符命令解析（推荐蓝牙控制方式）:
