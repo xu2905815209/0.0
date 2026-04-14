@@ -46,9 +46,9 @@ void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;           // ???
+  htim1.Init.Prescaler = 0;           // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;          // ??16???
+  htim1.Init.Period = 65535;          // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½?16?ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -92,9 +92,9 @@ void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;           // ?
+  htim3.Init.Prescaler = 0;           // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;          // ?
+  htim3.Init.Period = 65535;          // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
@@ -136,9 +136,9 @@ void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 0;           // ?
+  htim4.Init.Prescaler = 0;           // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 65535;          // ?
+  htim4.Init.Period = 65535;          // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
@@ -180,9 +180,9 @@ void MX_TIM5_Init(void)
 
   /* USER CODE END TIM5_Init 1 */
   htim5.Instance = TIM5;
-  htim5.Init.Prescaler = 0;           // ?
+  htim5.Init.Prescaler = 0;           // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
   htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim5.Init.Period = 65535;          // ?
+  htim5.Init.Period = 65535;          // ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
   htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
@@ -226,7 +226,7 @@ void MX_TIM8_Init(void)
 
   /* USER CODE END TIM8_Init 1 */
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 167;
+  htim8.Init.Prescaler = 7;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim8.Init.Period = 999;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -294,10 +294,10 @@ void MX_TIM8_Init(void)
 void MX_TIM6_Init(void)
 {
   htim6.Instance = TIM6;
-  // ??84MHz / 84 = 1MHz ( 1 ? 1us)
+  // ?ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½84MHz / 84 = 1MHz (ï¿½ï¿½ï¿½ï¿½ 1 ï¿½ï¿½? 1us)
   htim6.Init.Prescaler = 84 - 1; 
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  // ???10000 * 1us = 10000us = 10ms
+  // ï¿½?ï¿½ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½10000 * 1us = 10000us = 10ms
   htim6.Init.Period = 10000 - 1; 
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   
@@ -330,7 +330,7 @@ void HAL_TIM_Encoder_MspInit(TIM_HandleTypeDef* tim_encoderHandle)
     GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-    /* --- ? TIM1 ? --- */
+    /* --- ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ TIM1 ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ --- */
     HAL_NVIC_SetPriority(TIM1_UP_TIM10_IRQn, 1, 0); 
     HAL_NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
     /* -------------------------------- */
@@ -434,15 +434,15 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
 {
   if(tim_baseHandle->Instance==TIM8)
   {
-    /* ?? */
+    /* ï¿½ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ */
     __HAL_RCC_TIM8_CLK_ENABLE();
   }
   else if(tim_baseHandle->Instance==TIM6)  
   {
-    /* ? TIM6 ? */
+    /* ?ï¿½ï¿½ TIM6 ?ï¿½ï¿½ */
     __HAL_RCC_TIM6_CLK_ENABLE();
     
-    /*  TIM6 ??? */
+    /* ï¿½ï¿½ï¿½ï¿½ TIM6 ï¿½?ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½?ï¿½ï¿½ */
     HAL_NVIC_SetPriority(TIM6_DAC_IRQn, 2, 0);
     HAL_NVIC_EnableIRQ(TIM6_DAC_IRQn);
   }
@@ -591,59 +591,59 @@ void set_pwm_duty(TIM_HandleTypeDef *htim, uint32_t channel, float duty_percent)
     __HAL_TIM_SET_COMPARE(htim, channel, pulse);
 }
 void motor_init(void) {
-    // 1. ??? ( TIM8)
+    // 1. ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½?ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ TIM8)
     MX_TIM1_Init();
     MX_TIM3_Init();
     MX_TIM4_Init();
     MX_TIM5_Init();
     MX_TIM8_Init(); 
 
-    // 2. ???Ÿ
-    //  MX_TIM8_Init ??????
+    // 2. ï¿½ï¿½ï¿½ï¿½ï¿½??ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    // ï¿½ï¿½ï¿½ï¿½ MX_TIM8_Init ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½??
     HAL_TIM_MspPostInit(&htim8);
 
-    // 3. ? (?)
+    // 3. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ (ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½)
     HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL);
     HAL_TIM_Encoder_Start(&htim3, TIM_CHANNEL_ALL);
     HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL);
     HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
 
-    // 4. ????? TIM8? MOE (?) PWM
-    // ????????
+    // 4. ï¿½??ï¿½ï¿½ï¿½??ï¿½ï¿½ï¿½?ï¿½ï¿½ TIM8ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ MOE (ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ PWM
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½??ï¿½??ï¿½ï¿½ï¿½???ï¿½
     __HAL_TIM_MOE_ENABLE(&htim8); 
 
-    // 5.  4 · PWM ?
+    // 5. ï¿½ï¿½ï¿½ï¿½ 4 ï¿½ PWM ?ï¿½ï¿½
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
     
-    // 6. ????? BDTR ? MOE ?
-    // ? HAL ??
+    // 6. ï¿½ï¿½ï¿½?ï¿½?ï¿½?ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½? BDTR ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ MOE ?
+    // ï¿½ï¿½?ï¿½ï¿½ HAL ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?
     htim8.Instance->BDTR |= TIM_BDTR_MOE;
 
-    // 7. ???? 0 (?? motor_Stop)
+    // 7. ï¿½ï¿½?ï¿½ï¿½?ï¿½?ï¿½? 0 (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½??ï¿½ï¿½ motor_Stop)
     motor_Stop();
 }
-void motor_A(int PWM, uint8_t di) { // ?: TIM8_CH1 (PC6)
+void motor_A(int PWM, uint8_t di) { // ï¿½ï¿½?: TIM8_CH1 (PC6)
     set_pwm_duty(&htim8, TIM_CHANNEL_1, (float)PWM);  
     HAL_GPIO_WritePin(GPIOD, motor1_Pin, di ? GPIO_PIN_RESET : GPIO_PIN_SET);
-    HAL_GPIO_WritePin(GPIOD, motor1n_Pin, di ? GPIO_PIN_SET : GPIO_PIN_RESET); // ???? main.h ??
+    HAL_GPIO_WritePin(GPIOD, motor1n_Pin, di ? GPIO_PIN_SET : GPIO_PIN_RESET); // ?ï¿½?ï¿½?ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½ main.h ï¿½?ï¿½ï¿½ï¿½ï¿½?ï¿½ï¿½ï¿½
 }
 
-void motor_B(int PWM, uint8_t di) { // : TIM8_CH2 (PC7)
+void motor_B(int PWM, uint8_t di) { // ï¿½ï¿½ï¿½: TIM8_CH2 (PC7)
     set_pwm_duty(&htim8, TIM_CHANNEL_2, (float)PWM);  
     HAL_GPIO_WritePin(GPIOD, motor2_Pin, di ? GPIO_PIN_SET : GPIO_PIN_RESET);
     HAL_GPIO_WritePin(GPIOD, motor2n_Pin, di ? GPIO_PIN_RESET : GPIO_PIN_SET);
 }
 
-void motor_C(int PWM, uint8_t di) { // ?: TIM8_CH3 (PC8)
+void motor_C(int PWM, uint8_t di) { // ï¿½ï¿½?: TIM8_CH3 (PC8)
     set_pwm_duty(&htim8, TIM_CHANNEL_3, (float)PWM);  
     HAL_GPIO_WritePin(GPIOB, motor3_Pin, di ? GPIO_PIN_RESET : GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, motor3n_Pin, di ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
-void motor_D(int PWM, uint8_t di) { // ?: TIM8_CH4 (PC9)
+void motor_D(int PWM, uint8_t di) { // ï¿½?ï¿½: TIM8_CH4 (PC9)
     set_pwm_duty(&htim8, TIM_CHANNEL_4, (float)PWM);  
     HAL_GPIO_WritePin(GPIOB, motor4_Pin, di ? GPIO_PIN_RESET : GPIO_PIN_SET);
     HAL_GPIO_WritePin(GPIOB, motor4n_Pin, di ? GPIO_PIN_SET : GPIO_PIN_RESET);
@@ -657,9 +657,9 @@ void motor_Stop(void) {
 }
 void Move(long int pwma,long int pwmb,long int pwmc,long int pwmd,int8_t flag_a,int8_t flag_b,int8_t flag_c,int8_t flag_d)
 {
-	motor_A(pwma,flag_a);//kZ
-	motor_B(pwmb,flag_b);//Z
-	motor_C(pwmc,flag_c);//ke
-	motor_D(pwmd,flag_d);//e
+	motor_A(pwma,flag_a);//ï¿½kï¿½Z
+	motor_B(pwmb,flag_b);//ï¿½ï¿½ï¿½Z
+	motor_C(pwmc,flag_c);//ï¿½kï¿½e
+	motor_D(pwmd,flag_d);//ï¿½ï¿½ï¿½e
 }
 

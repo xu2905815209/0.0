@@ -25,6 +25,9 @@ extern int32_t Encoder_TIM5_Count;
 #define CONTROL_RAD2DEG                  57.2957795f
 #define CONTROL_EPSILON                  0.0001f
 #define CONTROL_LINE_SINGLE_LOSS_LIMIT   30U
+#define CONTROL_TUNE_PERIOD_MS           120U
+#define CONTROL_WHEEL_START_PWM_MIN      18.0f
+#define CONTROL_WHEEL_START_SPEED_MIN    8.0f
 
 /* 传感器通道布局映射（SUPVC 通道号从 0 开始）:
  * CH1(idx=0) = 前方(Front),  CH2(idx=1) = 后方(Rear)
@@ -113,16 +116,20 @@ typedef struct {
 typedef struct {
     uint32_t mode_id;
     uint32_t time_ms;
-    float left_raw;
-    float right_raw;
-    float front_raw;
-    float left_norm;
-    float right_norm;
-    float line_error;
+    float dist_lf;
+    float dist_rf;
+    float dist_lr;
+    float dist_rr;
+    float yaw_error;
+    float lat_error;
+    float vx_cmd;
+    float vy_cmd;
+    float wz_cmd;
     float vx_meas;
     float vy_meas;
     float wz_meas;
     float yaw_deg;
+    uint32_t valid_mask;
 } TelemetrySnapshot_t;
 
 /* 控制主状态:
@@ -256,7 +263,7 @@ static void reset_runtime_states(void)
     g_state.cmd_vx_mmps = 0.0f;
     g_state.cmd_vy_mmps = 0.0f;
     g_state.cmd_wz_dps = 0.0f;
-    g_state.line_forward_mmps = 300.0f;  /* 默认前进速度增大 */
+    g_state.line_forward_mmps = 0.0f;    /* 归中模式默认不前进 */
     g_state.line_target = 0.0f;
     g_state.line_error = 0.0f;
     g_state.line_last_diff = 0.0f;
@@ -337,23 +344,24 @@ static void init_default_config(void)
     g_cfg.wheel_speed_lpf_alpha = 0.45f;
     g_cfg.max_vx_mmps = 450.0f;
     g_cfg.max_vy_mmps = 450.0f;
-    g_cfg.max_wz_dps = 180.0f;
+    g_cfg.max_wz_dps = 260.0f;
     g_cfg.max_wheel_mmps = 800.0f;
-    g_cfg.line_vy_limit_mmps = 350.0f;      /* 横移速度上限增大 */
+    g_cfg.line_vy_limit_mmps = 550.0f;      /* 横移速度上限进一步增大 */
     g_cfg.line_forward_limit_mmps = 450.0f; /* 前进速度上限增大 */
 
-    g_cfg.wheel_pid_kp = 0.08f;
-    g_cfg.wheel_pid_ki = 0.015f;
+    /* 速度内环增强：原参数反馈过软，误差打不出有效PWM */
+    g_cfg.wheel_pid_kp = 0.30f;
+    g_cfg.wheel_pid_ki = 0.06f;
     g_cfg.wheel_pid_kd = 0.0f;
 
-    /* 位置PID参数增大，让小车快速归位 */
-    g_cfg.line_pid_kp = 5.0f;   /* 横向位置P增大 */
-    g_cfg.line_pid_ki = 0.15f;
-    g_cfg.line_pid_kd = 0.05f;
+    /* 外环增强：居中和姿态纠偏输出更果断 */
+    g_cfg.line_pid_kp = 12.0f;
+    g_cfg.line_pid_ki = 0.25f;
+    g_cfg.line_pid_kd = 0.10f;
 
-    g_cfg.yaw_pid_kp = 2.5f;    /* 偏航角度P增大 */
-    g_cfg.yaw_pid_ki = 0.0f;
-    g_cfg.yaw_pid_kd = 0.0f;
+    g_cfg.yaw_pid_kp = 7.0f;
+    g_cfg.yaw_pid_ki = 0.02f;
+    g_cfg.yaw_pid_kd = 0.12f;
 
     g_cfg.telemetry_enabled = 1U;
 }
@@ -759,10 +767,8 @@ static void run_line_mode_outer_loop(float *vx_cmd, float *vy_cmd, float *wz_cmd
         return;
     }
 
-    /* 前进速度：给定基准速度 */
-    *vx_cmd = clampf_local(g_state.line_forward_mmps,
-                           -g_cfg.line_forward_limit_mmps,
-                           g_cfg.line_forward_limit_mmps);
+    /* 归中模式：固定不前进，只做横向归中 + 平行墙面姿态控制。 */
+    *vx_cmd = 0.0f;
 
     /* 获取四个侧向传感器距离值（cm） */
     dist_LF = g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw;     /* CH3 左前 */
@@ -807,6 +813,8 @@ static void run_speed_loop(float vx_cmd, float vy_cmd, float wz_cmd)
 {
     uint8_t i;
     uint8_t stop_mode;
+    float target_abs;
+    float pwm_abs;
 
     mecanum_inverse_kinematics(vx_cmd, vy_cmd, wz_cmd, g_state.wheel_target_mmps);
 
@@ -826,6 +834,17 @@ static void run_speed_loop(float vx_cmd, float vy_cmd, float wz_cmd)
                                                 g_state.wheel_target_mmps[i],
                                                 g_state.wheel_meas_mmps[i],
                                                 CONTROL_DT_S);
+
+            /* 低速起步补偿: 目标速度存在但 PID 输出太小会导致电机只蜂鸣不转。 */
+            target_abs = fabsf(g_state.wheel_target_mmps[i]);
+            pwm_abs = fabsf(g_state.wheel_pwm_cmd[i]);
+            if ((target_abs > CONTROL_WHEEL_START_SPEED_MIN) &&
+                (pwm_abs > CONTROL_EPSILON) &&
+                (pwm_abs < CONTROL_WHEEL_START_PWM_MIN)) {
+                g_state.wheel_pwm_cmd[i] = (g_state.wheel_pwm_cmd[i] >= 0.0f) ?
+                                           CONTROL_WHEEL_START_PWM_MIN :
+                                           -CONTROL_WHEEL_START_PWM_MIN;
+            }
         }
     }
 
@@ -880,23 +899,38 @@ static void update_calibration_state(void)
 }
 
 /* 采集本周期快照，交给主循环统一输出 FireWater。 */
-static void update_telemetry_snapshot(void)
+static void update_telemetry_snapshot(float vx_cmd, float vy_cmd, float wz_cmd)
 {
+    uint32_t valid_mask = 0U;
+
     g_state.telemetry_snapshot.mode_id = (uint32_t)g_state.mode;
     g_state.telemetry_snapshot.time_ms = HAL_GetTick();
 
-    g_state.telemetry_snapshot.left_raw = (float)g_state.ultra[SENSOR_LEFT_FRONT].raw;
-    g_state.telemetry_snapshot.right_raw = (float)g_state.ultra[SENSOR_RIGHT_FRONT].raw;
-    g_state.telemetry_snapshot.front_raw = (float)g_state.ultra[SENSOR_FRONT].raw;
+    g_state.telemetry_snapshot.dist_lf = g_state.ultra[SENSOR_LEFT_FRONT].valid ?
+                                         g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.dist_rf = g_state.ultra[SENSOR_RIGHT_FRONT].valid ?
+                                         g_state.ultra[SENSOR_RIGHT_FRONT].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.dist_lr = g_state.ultra[SENSOR_LEFT_REAR].valid ?
+                                         g_state.ultra[SENSOR_LEFT_REAR].filtered_raw : -1.0f;
+    g_state.telemetry_snapshot.dist_rr = g_state.ultra[SENSOR_RIGHT_REAR].valid ?
+                                         g_state.ultra[SENSOR_RIGHT_REAR].filtered_raw : -1.0f;
 
-    g_state.telemetry_snapshot.left_norm = g_state.ultra[SENSOR_LEFT_FRONT].valid ? g_state.ultra[SENSOR_LEFT_FRONT].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.right_norm = g_state.ultra[SENSOR_RIGHT_FRONT].valid ? g_state.ultra[SENSOR_RIGHT_FRONT].filtered_raw : -1.0f;
-    g_state.telemetry_snapshot.line_error = g_state.line_error;
+    g_state.telemetry_snapshot.yaw_error = g_state.yaw_error;
+    g_state.telemetry_snapshot.lat_error = g_state.lat_error;
+    g_state.telemetry_snapshot.vx_cmd = vx_cmd;
+    g_state.telemetry_snapshot.vy_cmd = vy_cmd;
+    g_state.telemetry_snapshot.wz_cmd = wz_cmd;
 
     g_state.telemetry_snapshot.vx_meas = g_state.vx_meas_mmps;
     g_state.telemetry_snapshot.vy_meas = g_state.vy_meas_mmps;
     g_state.telemetry_snapshot.wz_meas = g_state.wz_meas_dps;
     g_state.telemetry_snapshot.yaw_deg = g_state.yaw_meas_deg;
+
+    if (g_state.ultra[SENSOR_LEFT_FRONT].valid)  { valid_mask |= (1U << SENSOR_LEFT_FRONT); }
+    if (g_state.ultra[SENSOR_RIGHT_FRONT].valid) { valid_mask |= (1U << SENSOR_RIGHT_FRONT); }
+    if (g_state.ultra[SENSOR_LEFT_REAR].valid)   { valid_mask |= (1U << SENSOR_LEFT_REAR); }
+    if (g_state.ultra[SENSOR_RIGHT_REAR].valid)  { valid_mask |= (1U << SENSOR_RIGHT_REAR); }
+    g_state.telemetry_snapshot.valid_mask = valid_mask;
 
     if (g_cfg.telemetry_enabled) {
         g_state.telemetry_pending = 1U;
@@ -1086,7 +1120,7 @@ void Control_10ms_Task(void)
     }
 
     run_speed_loop(vx_cmd, vy_cmd, wz_cmd);// 内环下发 PWM
-    update_telemetry_snapshot();// 采集当前周期的 telemetry 快照，等待主循环发送
+    update_telemetry_snapshot(vx_cmd, vy_cmd, wz_cmd);// 采集当前周期的 telemetry 快照，等待主循环发送
 }
 
 /* 主循环后台任务（非中断）:
@@ -1098,7 +1132,26 @@ void Control_MainLoop_Task(void)
 
     SUPVC_Service_MainLoop();
 
-    /* VL53L0X 数据回传由 supvc.c 内部的驱动负责发送日志 */
+    if (g_cfg.telemetry_enabled &&
+        (g_state.mode == CONTROL_MODE_LINE_FOLLOW) &&
+        g_state.telemetry_pending &&
+        ((now - sensor_stream_last_ms) >= CONTROL_TUNE_PERIOD_MS)) {
+        sensor_stream_last_ms = now;
+        g_state.telemetry_pending = 0U;
+
+        /* FireWater 推荐格式: <name>:ch0,ch1,...,chN\n */
+        uart_printf("tune:%lu,%.1f,%.1f,%.1f,%.1f,%.2f,%.2f,%.1f,%.1f,%lu\r\n",
+                    (unsigned long)g_state.telemetry_snapshot.time_ms,
+                    g_state.telemetry_snapshot.dist_lf,
+                    g_state.telemetry_snapshot.dist_rf,
+                    g_state.telemetry_snapshot.dist_lr,
+                    g_state.telemetry_snapshot.dist_rr,
+                    g_state.telemetry_snapshot.yaw_error,
+                    g_state.telemetry_snapshot.lat_error,
+                    g_state.telemetry_snapshot.vy_cmd,
+                    g_state.telemetry_snapshot.wz_cmd,
+                    (unsigned long)g_state.telemetry_snapshot.valid_mask);
+    }
 }
 
 /* 单字符命令解析（推荐蓝牙控制方式）:

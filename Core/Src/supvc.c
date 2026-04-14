@@ -29,6 +29,9 @@
 
 #define VL53L0X_MODEL_ID_EXPECTED       0xEE
 
+/* 置 1 可打开底层六路测距原始日志；调参阶段默认关闭，避免串口被刷屏。 */
+#define SUPVC_STREAM_LOG_ENABLE          0
+
 /* ============================================================================
  * 数据存储
  * ============================================================================ */
@@ -440,7 +443,7 @@ void SUPVC_Service_MainLoop(void)
                 }
             }
 
-            /* --- 蓝牙调试日志 --- */
+            #if SUPVC_STREAM_LOG_ENABLE
             uart_printf("VL53L0X: ");
             for (i = 0; i < SUPVC_CHANNEL_COUNT; i++) {
                 if (!supvc_sensor_online[i]) {
@@ -452,6 +455,7 @@ void SUPVC_Service_MainLoop(void)
                 }
             }
             uart_printf("\r\n");
+            #endif
 
             supvc_measuring = 0;
             last_ms = now_ms;
