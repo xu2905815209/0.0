@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数二错疑库｜考研数学二</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ee;--blue:#1557b0;--blue2:#0d3c7b;--green:#167a55;--warn:#fff7e8}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif}
+button,input{font:inherit}.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.side{background:#0e2f5c;color:#fff;padding:22px 16px;position:sticky;top:0;height:100vh}
+.brand{font-size:23px;font-weight:900}.sub{opacity:.75;font-size:13px;margin:5px 0 20px}.nav{display:block;width:100%;border:0;border-radius:10px;padding:10px 12px;margin:4px 0;background:transparent;color:#fff;text-align:left;cursor:pointer}.nav:hover{background:#ffffff18}
+.main{max-width:1180px;width:100%;padding:24px;margin:auto}.hero{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;padding:26px;border-radius:20px}.hero h1{margin:0 0 8px}.hero p{margin:0;line-height:1.7}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.stat,.card,.quiz{background:#fff;border:1px solid var(--line);border-radius:15px;padding:16px}.stat b{display:block;font-size:26px}.stat span,.muted{color:var(--muted);font-size:13px}
+.tools{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin:16px 0}.search,.btn{border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 13px}.btn{cursor:pointer}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card h3{margin:0 0 8px}.badge{display:inline-block;padding:3px 8px;margin:8px 5px 8px 0;border-radius:999px;background:#eef3f9;font-size:12px}.badge.q{background:#fff0e8}.detail{display:none;border-top:1px dashed var(--line);margin-top:12px;padding-top:12px;line-height:1.75}.detail.open{display:block}
+.formula{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center;font-family:"Times New Roman",serif;font-size:21px;margin:10px 0;overflow:auto}.call{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:12px;margin:10px 0}.exam{background:var(--warn)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.mastered{border-color:#a9d7c4;background:#eef9f4}.section{margin-top:26px}.quizopt{display:block;width:100%;text-align:left;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}.good{background:#eef9f4!important}.bad{background:#fff0ef!important}.hide{display:none}
+@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.tools{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+<div class="brand">数二错疑库</div>
+<div class="sub">只收录我真正不会 / 问过的内容</div>
+<button class="nav" onclick="go('top')">总览</button>
+<button class="nav" onclick="go('bank')">错疑题库</button>
+<button class="nav" onclick="go('quiz')">随机抽查</button>
+<div style="margin-top:20px;font-size:13px;line-height:1.7;opacity:.82">长期规则：你每问一个新疑问，我就把它整理成可复习的题卡，并保留在同一个站点。</div>
+</aside>
+<main class="main">
+<section id="top" class="hero">
+<h1>考研数学二 · 错疑学习站</h1>
+<p>这不是教材百科，而是你的个人“不会清单”。正式题目从 Q001 开始；后续每个新疑问都会继续加入，并关联搜索、掌握状态与抽查。</p>
+</section>
+
+<div class="stats">
+<div class="stat"><b id="all">0</b><span>已收录</span></div>
+<div class="stat"><b id="done">0</b><span>已掌握</span></div>
+<div class="stat"><b id="todo">0</b><span>待复习</span></div>
+<div class="stat"><b id="rate">0%</b><span>掌握率</span></div>
+</div>
+
+<div class="tools">
+<input id="search" class="search" placeholder="搜索：牛顿—莱布尼茨、中值定理、二阶导……">
+<button id="reviewBtn" class="btn">只看未掌握</button>
+<button class="btn primary" onclick="randomReview()">随机复习</button>
+</div>
+
+<section id="bank" class="section">
+<h2>错疑题库</h2>
+<div id="grid" class="grid"></div>
+</section>
+
+<section id="quiz" class="section">
+<h2>随机抽查</h2>
+<div class="quiz">
+<div id="qq" style="font-size:19px;font-weight:800;margin-bottom:10px"></div>
+<div id="opts"></div>
+<button class="btn primary" onclick="newQuiz()">换一题</button>
+<div id="explain" class="call hide"></div>
+</div>
+</section>
+</main>
+</div>
+
+<script>
+var topics=[
+{id:"q001",qno:"Q001",title:"两条红色公式从哪里来？什么时候用？",tags:["中值定理","牛顿—莱布尼茨","高频"],summary:"第一条是拉格朗日中值定理；第二条是牛顿—莱布尼茨。重点是根据题面识别该用哪一个。",detail:
+'<div class="call exam"><b>原始疑问：</b>红色字体的两个公式是什么？我忘记它们从哪里来的了。</div>'+
+'<h4>① 拉格朗日中值定理</h4>'+
+'<div class="formula">f(b)-f(a)=f′(ξ)(b-a)， ξ∈(a,b)</div>'+
+'<div class="formula">[f(b)-f(a)]/(b-a)=f′(ξ)</div>'+
+'<div class="call"><b>人话：</b>整段的平均变化率，等于中间某一点的瞬时变化率。几何上就是某一点切线与两端点割线平行。</div>'+
+'<div class="call"><b>考场信号：</b>出现“存在 ξ”“平均变化率”“证明不等式”“导数估计”时优先想到它。</div>'+
+'<h4>② 牛顿—莱布尼茨公式</h4>'+
+'<div class="formula">f(b)-f(a)=∫ₐᵇ f′(t)dt</div>'+
+'<div class="call"><b>人话：</b>把每一点的瞬时变化率一路累加，就是原函数总共变化了多少。</div>'+
+'<div class="call"><b>图像语言：</b>f′(x) 图像与 x 轴之间的带符号面积 = f 的函数值变化量。轴上方算正，轴下方算负。</div>'+
+'<h4>③ 为什么原题主要用第二条？</h4>'+
+'<p>因为题目给的是 f′(x) 图像、三个区域面积和一个 f 的函数值。看到“导数图像 + 面积 + 一个 f 值”，第一反应就是牛顿—莱布尼茨。</p>'+
+'<div class="formula">f(1)=1-3=-2</div><div class="formula">f(3)=-2+4=2</div><div class="formula">f(4)=2-2=0</div>'+
+'<div class="call exam"><b>考场一眼识别：</b>“存在 ξ / 平均斜率” → 拉格朗日；“f′ 图像 + 面积 + 一个 f 值” → 牛顿—莱布尼茨。</div>'+
+'<details class="call"><summary><b>30 秒自测</b></summary><p>若 ∫₁³f′(x)dx=4，且 f(1)=-2，则 f(3)=？</p><p><b>答案：</b>2，因为 f(3)-f(1)=4。</p></details>'},
+{id:"derivative",title:"函数可导的条件",tags:["导数","基础"],summary:"某点可导 ⇔ 导数定义极限存在且有限；左右导数存在且相等。",detail:'<div class="formula">f′(x₀)=lim[x→x₀] (f(x)-f(x₀))/(x-x₀)</div><div class="call"><b>关系：</b>可导 ⇒ 连续；连续不一定可导。</div>'},
+{id:"second",title:"二阶导存在能推出什么？",tags:["二阶导","易错"],summary:"f″(x₀)存在 ⇒ f′在x₀可导 ⇒ f′在x₀连续。",detail:'<div class="formula">f″存在 → f′可导 → f′连续</div><div class="call exam"><b>别多推：</b>这不等于 f″连续。</div>'},
+{id:"extrema",title:"单调、驻点、极值怎么区分？",tags:["单调","极值"],summary:"f′看增减；f′=0只是驻点候选；极值要看导数左右变号。",detail:'<div class="formula">f′>0 → 递增　　f′<0 → 递减</div><div class="formula">+→− → 极大　　−→+ → 极小</div>'},
+{id:"limit",title:"∞×0 型极限怎么处理？",tags:["极限","未定式"],summary:"∞·0是未定式：先找等价无穷小，不行再改成0/0或∞/∞。",detail:'<div class="formula">ln(1+t) ~ t　(t→0)</div><div class="call">常见路线：等价无穷小 → 改分式 → 洛必达。</div>'},
+{id:"leibniz",title:"莱布尼茨公式：乘积的 n 阶导",tags:["高阶导","组合数"],summary:"把 n 次求导分配给两个因子的所有方式全部加起来。",detail:'<div class="formula">(uv)⁽ⁿ⁾=Σ Cₙᵏ u⁽ᵏ⁾v⁽ⁿ⁻ᵏ⁾</div><div class="call">Cₙᵏ表示 n 次求导里选 k 次作用在一个因子上。</div>'}
+];
+
+var quizBank=[
+{q:"给出 f′ 图像和面积，想求 f(b)-f(a)，优先想到？",o:["拉格朗日中值定理","牛顿—莱布尼茨","洛必达","泰勒"],a:1,e:"f(b)-f(a)=∫ₐᵇf′(t)dt。"},
+{q:"f″(x₀)存在，可以推出？",o:["f″在x₀连续","f′在x₀连续","附近一定有极值","f″附近同号"],a:1,e:"因为 f″存在就是 f′可导，而可导 ⇒ 连续。"},
+{q:"f′(x₀)=0 能直接说明是极值点吗？",o:["能","不能"],a:1,e:"不能，只能先列为驻点候选，还要看左右变号。"}
+];
+
+var key="math2_mastered_v1";
+var mastered=JSON.parse(localStorage.getItem(key)||"{}");
+var onlyReview=false;
+
+function go(id){document.getElementById(id).scrollIntoView({behavior:"smooth"});}
+function updateStats(){
+var n=topics.length,m=topics.filter(function(t){return mastered[t.id]}).length;
+document.getElementById("all").textContent=n;document.getElementById("done").textContent=m;document.getElementById("todo").textContent=n-m;document.getElementById("rate").textContent=Math.round(m/n*100)+"%";
+}
+function render(){
+var q=document.getElementById("search").value.trim().toLowerCase(),g=document.getElementById("grid");g.innerHTML="";
+topics.filter(function(t){var h=(t.title+" "+t.summary+" "+t.tags.join(" ")).toLowerCase();return(!q||h.indexOf(q)>=0)&&(!onlyReview||!mastered[t.id]);}).forEach(function(t){
+var a=document.createElement("article");a.className="card"+(mastered[t.id]?" mastered":"");a.id=t.id;
+var badges=(t.qno?'<span class="badge q">'+t.qno+'</span>':"")+t.tags.map(function(x){return '<span class="badge">'+x+'</span>';}).join("");
+a.innerHTML='<h3>'+t.title+'</h3><p>'+t.summary+'</p><div>'+badges+'</div><div class="actions"><button class="btn exp">展开讲解</button><button class="btn mark">'+(mastered[t.id]?"✓ 已掌握":"标记掌握")+'</button></div><div class="detail">'+t.detail+'</div>';
+a.querySelector(".exp").onclick=function(){var d=a.querySelector(".detail");d.classList.toggle("open");this.textContent=d.classList.contains("open")?"收起":"展开讲解";};
+a.querySelector(".mark").onclick=function(){mastered[t.id]=!mastered[t.id];localStorage.setItem(key,JSON.stringify(mastered));render();updateStats();};
+g.appendChild(a);
+});
+}
+document.getElementById("search").oninput=render;
+document.getElementById("reviewBtn").onclick=function(){onlyReview=!onlyReview;this.textContent=onlyReview?"显示全部":"只看未掌握";render();};
+function randomReview(){var p=topics.filter(function(t){return !mastered[t.id]});if(!p.length)p=topics;var t=p[Math.floor(Math.random()*p.length)];document.getElementById("search").value=t.title;onlyReview=false;document.getElementById("reviewBtn").textContent="只看未掌握";render();setTimeout(function(){var el=document.getElementById(t.id);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.querySelector(".detail").classList.add("open");}},80);}
+function newQuiz(){var x=quizBank[Math.floor(Math.random()*quizBank.length)],q=document.getElementById("qq"),o=document.getElementById("opts"),e=document.getElementById("explain");q.textContent=x.q;o.innerHTML="";e.classList.add("hide");x.o.forEach(function(v,i){var b=document.createElement("button");b.className="quizopt";b.textContent=v;b.onclick=function(){Array.prototype.forEach.call(o.children,function(c){c.disabled=true});b.classList.add(i===x.a?"good":"bad");if(i!==x.a)o.children[x.a].classList.add("good");e.textContent=x.e;e.classList.remove("hide");};o.appendChild(b);});}
+updateStats();render();newQuiz();
+</script>
+</body>
+</html>
