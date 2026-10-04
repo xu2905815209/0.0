@@ -8,7 +8,8 @@
 - AI rules: CLAUDE.md
 - Source: GitHub repo `xu2905815209/0.0`, directory `math2-study-site/`
 - Source branch: `feature/0.1`
-- Deployment target: public HTTPS website
+- Deployment target: GitHub Pages public HTTPS website
+- Canonical public URL: **https://xu2905815209.github.io/0.0/**
 
 ## Numbering
 - Latest official question: **Q001**
@@ -28,12 +29,13 @@
 下一个新的独立疑问原则上编号 **Q002**；若只是 Q001 追问，优先补充 Q001。
 
 ## Public deployment status
-- Source has been pushed to GitHub.
-- GitHub Pages workflow exists at `.github/workflows/math2-pages.yml`.
-- GitHub Pages is now enabled (`has_pages: true`) with GitHub Actions as the source.
-- Vercel connection is authenticated, but project creation currently returns HTTP 403 requiring authorization to the personal Vercel scope `aed29566-3294`.
-- No production URL may be treated as canonical until a deployment is successfully verified.
+- GitHub Pages is enabled with **GitHub Actions** as the source.
+- Workflow `Deploy Math2 Study Site` completed successfully.
+- Deployment logs reported the environment URL:
+  - **https://xu2905815209.github.io/0.0/**
+- This URL is now the canonical public site.
+- Vercel is not required for the current production site.
 
 ## Required next deployment action
-- Trigger the existing GitHub Pages workflow via this commit and verify the resulting public URL.
-- If deployment succeeds, record the verified URL here as the canonical public site.
+- None for initial launch.
+- For future content updates: update the same GitHub project, let the Pages workflow deploy, and verify the workflow succeeds.
