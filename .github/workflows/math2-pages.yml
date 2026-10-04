@@ -1,0 +1,37 @@
+name: Deploy Math2 Study Site
+
+on:
+  push:
+    branches: ["feature/0.1"]
+    paths:
+      - "math2-study-site/**"
+      - ".github/workflows/math2-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "math2-pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload study site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: math2-study-site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
