@@ -30,11 +30,10 @@
 ## Public deployment status
 - Source has been pushed to GitHub.
 - GitHub Pages workflow exists at `.github/workflows/math2-pages.yml`.
-- GitHub repository currently reports `has_pages: false`, so Pages is not enabled yet.
+- GitHub Pages is now enabled (`has_pages: true`) with GitHub Actions as the source.
 - Vercel connection is authenticated, but project creation currently returns HTTP 403 requiring authorization to the personal Vercel scope `aed29566-3294`.
 - No production URL may be treated as canonical until a deployment is successfully verified.
 
 ## Required next deployment action
-Either:
-1. Re-authorize Vercel for the personal scope and retry Vercel Git deployment, or
-2. Enable GitHub Pages for the repo with GitHub Actions as the source, then trigger/verify the existing workflow.
+- Trigger the existing GitHub Pages workflow via this commit and verify the resulting public URL.
+- If deployment succeeds, record the verified URL here as the canonical public site.
