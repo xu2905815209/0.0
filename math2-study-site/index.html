@@ -13,9 +13,9 @@ button,input{font:inherit}.app{display:grid;grid-template-columns:260px 1fr;min-
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.stat,.card,.quiz{background:#fff;border:1px solid var(--line);border-radius:15px;padding:16px}.stat b{display:block;font-size:26px}.stat span,.muted{color:var(--muted);font-size:13px}
 .tools{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin:16px 0}.search,.btn{border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 13px}.btn{cursor:pointer}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card h3{margin:0 0 8px}.badge{display:inline-block;padding:3px 8px;margin:8px 5px 8px 0;border-radius:999px;background:#eef3f9;font-size:12px}.badge.q{background:#fff0e8}.detail{display:none;border-top:1px dashed var(--line);margin-top:12px;padding-top:12px;line-height:1.75}.detail.open{display:block}
-.formula{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center;font-family:"Times New Roman",serif;font-size:21px;margin:10px 0;overflow:auto}.call{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:12px;margin:10px 0}.exam{background:var(--warn)}
+.formula{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center;font-family:"Times New Roman",serif;font-size:21px;margin:10px 0;overflow:auto}.frac{display:inline-grid;grid-template-rows:auto auto;vertical-align:middle;text-align:center;line-height:1.1;margin:0 3px}.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 5px 2px}.frac>span:last-child{padding:2px 5px 0}.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.step{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}.miniopts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.miniopts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer}.answerbox{margin-top:8px;padding:10px;border-radius:9px;background:#f8fafc;border:1px solid var(--line)}.call{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:12px;margin:10px 0}.exam{background:var(--warn)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.mastered{border-color:#a9d7c4;background:#eef9f4}.section{margin-top:26px}.quizopt{display:block;width:100%;text-align:left;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}.good{background:#eef9f4!important}.bad{background:#fff0ef!important}.hide{display:none}
-@media(max-width:900px){.app{grid-template-columns:1fr}.side{position:relative;height:auto}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.tools{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}}
+@media(max-width:900px){.ladder{grid-template-columns:repeat(2,1fr)}.app{grid-template-columns:1fr}.side{position:relative;height:auto}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.tools{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -82,6 +82,33 @@ var topics=[
 '<div class="formula">f(1)=1-3=-2</div><div class="formula">f(3)=-2+4=2</div><div class="formula">f(4)=2-2=0</div>'+
 '<div class="call exam"><b>考场一眼识别：</b>“存在 ξ / 平均斜率” → 拉格朗日；“f′ 图像 + 面积 + 一个 f 值” → 牛顿—莱布尼茨。</div>'+
 '<details class="call"><summary><b>30 秒自测</b></summary><p>若 ∫₁³f′(x)dx=4，且 f(1)=-2，则 f(3)=？</p><p><b>答案：</b>2，因为 f(3)-f(1)=4。</p></details>'},
+{id:"q002",qno:"Q002",title:"为什么 1/x 的 n 阶导等于 (-1)^n n!/x^(n+1)？是泰勒展开吗？",tags:["高阶导","幂函数","易错"],summary:"不是靠泰勒展开。最直接来源是把 1/x 写成 x⁻¹，然后连续使用幂函数求导公式。",detail:
+'<div class="call exam"><b>原始疑问：</b>教材里 \(1/x\) 的高阶导为什么直接写成 \((-1)^n n!/x^{n+1}\)？是不是从泰勒展开来的？</div>'+
+'<div class="call"><b>先给结论：</b>不是。这一题最直接、最应该掌握的来源是<b>幂函数反复求导</b>。泰勒展开能和它联系起来，但这里没必要用泰勒。</div>'+
+'<h4>① 先把分式改写成幂</h4>'+
+'<div class="formula"><span class="frac"><span>1</span><span>x</span></span> = x<sup>−1</sup></div>'+
+'<p>然后只用你已经学过的幂函数求导：</p>'+
+'<div class="formula">(x<sup>m</sup>)′ = m x<sup>m−1</sup></div>'+
+'<h4>② 连续求 3 次，规律自己就出来了</h4>'+
+'<div class="ladder"><div class="step"><b>原函数</b><br>x<sup>−1</sup></div><div class="step"><b>1 阶</b><br>−x<sup>−2</sup></div><div class="step"><b>2 阶</b><br>2x<sup>−3</sup></div><div class="step"><b>3 阶</b><br>−6x<sup>−4</sup></div></div>'+
+'<p>你观察两件事：</p>'+
+'<div class="call"><b>系数：</b>−1，2，−6，24，… = \((-1)^n n!\)<br><b>x 的次数：</b>−1，−2，−3，−4，… = \(-(n+1)\)</div>'+
+'<h4>③ 所以 n 阶导就是</h4>'+
+'<div class="formula">(<span class="frac"><span>1</span><span>x</span></span>)<sup>(n)</sup> = (−1)(−2)…(−n)x<sup>−(n+1)</sup> = (−1)<sup>n</sup><span class="frac"><span>n!</span><span>x<sup>n+1</sup></span></span></div>'+
+'<div class="call exam"><b>考场记法：</b>看到 \(1/x\)，不要想泰勒，先想 \(x^{-1}\)；每求一次导数，系数再乘一个负整数，分母的 x 次数加 1。</div>'+
+'<h4>④ 那教材里的 1/(1−x) 呢？</h4>'+
+'<div class="formula"><span class="frac"><span>1</span><span>1−x</span></span> = (1−x)<sup>−1</sup></div>'+
+'<p>第一次求导时：外层幂函数给一个负号，内层 \(1−x\) 的导数又给一个负号，两个负号抵消，所以从头到尾都是正的：</p>'+
+'<div class="ladder"><div class="step">1 阶：<br>(1−x)<sup>−2</sup></div><div class="step">2 阶：<br>2(1−x)<sup>−3</sup></div><div class="step">3 阶：<br>6(1−x)<sup>−4</sup></div><div class="step">n 阶：<br><span class="frac"><span>n!</span><span>(1−x)<sup>n+1</sup></span></span></div></div>'+
+'<p>所以原题先做部分分式：</p>'+
+'<div class="formula"><span class="frac"><span>1</span><span>x(1−x)</span></span> = <span class="frac"><span>1</span><span>x</span></span> + <span class="frac"><span>1</span><span>1−x</span></span></div>'+
+'<p>再分别求 n 阶导，最后相加：</p>'+
+'<div class="formula">y<sup>(n)</sup> = (−1)<sup>n</sup><span class="frac"><span>n!</span><span>x<sup>n+1</sup></span></span> + <span class="frac"><span>n!</span><span>(1−x)<sup>n+1</sup></span></span></div>'+
+'<h4>⑤ 和泰勒展开到底什么关系？</h4>'+
+'<div class="call"><b>可以联系，但不是这里的来源。</b><br>例如 \(1/(1−x)\) 在 \(|x|<1\) 时确实能展开成几何级数，并由系数读出各阶导数；但 \(1/x\) 在 x=0 处本身都没有定义，所以根本不存在以 0 为中心的麦克劳林展开。考研这里应优先用“幂函数反复求导”。</div>'+
+'<div class="call exam"><b>一眼识别：</b>分母是 x、(a±bx) 这类一次式，又要求高阶导 → 先尝试写成负幂，再找前 2～3 阶规律；复杂有理式先部分分式拆开。</div>'+
+'<div class="call"><b>30 秒自测：</b>\((1/x)^{(4)}\) 应该是哪一个？<div class="miniopts"><button onclick="q002Check(this,false)">−24/x⁵</button><button onclick="q002Check(this,true)">24/x⁵</button><button onclick="q002Check(this,false)">4!/x⁴</button></div><div id="q002ans" class="answerbox">先自己选，再看反馈。</div></div>'},
+
 {id:"derivative",title:"函数可导的条件",tags:["导数","基础"],summary:"某点可导 ⇔ 导数定义极限存在且有限；左右导数存在且相等。",detail:'<div class="formula">f′(x₀)=lim[x→x₀] (f(x)-f(x₀))/(x-x₀)</div><div class="call"><b>关系：</b>可导 ⇒ 连续；连续不一定可导。</div>'},
 {id:"second",title:"二阶导存在能推出什么？",tags:["二阶导","易错"],summary:"f″(x₀)存在 ⇒ f′在x₀可导 ⇒ f′在x₀连续。",detail:'<div class="formula">f″存在 → f′可导 → f′连续</div><div class="call exam"><b>别多推：</b>这不等于 f″连续。</div>'},
 {id:"extrema",title:"单调、驻点、极值怎么区分？",tags:["单调","极值"],summary:"f′看增减；f′=0只是驻点候选；极值要看导数左右变号。",detail:'<div class="formula">f′>0 → 递增　　f′<0 → 递减</div><div class="formula">+→− → 极大　　−→+ → 极小</div>'},
@@ -90,6 +117,7 @@ var topics=[
 ];
 
 var quizBank=[
+{q:"1/x 的 n 阶导最直接来自哪里？",o:["麦克劳林展开","把 1/x 写成 x⁻¹ 后反复用幂函数求导","洛必达法则","分部积分"],a:1,e:"最直接是幂函数反复求导：x⁻¹ → −x⁻² → 2x⁻³ → −6x⁻⁴ → …，得到 (−1)^n n!/x^(n+1)。"},
 {q:"给出 f′ 图像和面积，想求 f(b)-f(a)，优先想到？",o:["拉格朗日中值定理","牛顿—莱布尼茨","洛必达","泰勒"],a:1,e:"f(b)-f(a)=∫ₐᵇf′(t)dt。"},
 {q:"f″(x₀)存在，可以推出？",o:["f″在x₀连续","f′在x₀连续","附近一定有极值","f″附近同号"],a:1,e:"因为 f″存在就是 f′可导，而可导 ⇒ 连续。"},
 {q:"f′(x₀)=0 能直接说明是极值点吗？",o:["能","不能"],a:1,e:"不能，只能先列为驻点候选，还要看左右变号。"}
@@ -119,6 +147,7 @@ document.getElementById("search").oninput=render;
 document.getElementById("reviewBtn").onclick=function(){onlyReview=!onlyReview;this.textContent=onlyReview?"显示全部":"只看未掌握";render();};
 function randomReview(){var p=topics.filter(function(t){return !mastered[t.id]});if(!p.length)p=topics;var t=p[Math.floor(Math.random()*p.length)];document.getElementById("search").value=t.title;onlyReview=false;document.getElementById("reviewBtn").textContent="只看未掌握";render();setTimeout(function(){var el=document.getElementById(t.id);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.querySelector(".detail").classList.add("open");}},80);}
 function newQuiz(){var x=quizBank[Math.floor(Math.random()*quizBank.length)],q=document.getElementById("qq"),o=document.getElementById("opts"),e=document.getElementById("explain");q.textContent=x.q;o.innerHTML="";e.classList.add("hide");x.o.forEach(function(v,i){var b=document.createElement("button");b.className="quizopt";b.textContent=v;b.onclick=function(){Array.prototype.forEach.call(o.children,function(c){c.disabled=true});b.classList.add(i===x.a?"good":"bad");if(i!==x.a)o.children[x.a].classList.add("good");e.textContent=x.e;e.classList.remove("hide");};o.appendChild(b);});}
+function q002Check(btn,ok){var box=document.getElementById("q002ans");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>四阶导的符号是正，因为 (−1)^4=1；系数 4!=24；分母次数变成 x^5。";}else{btn.classList.add("bad");box.innerHTML="<b>再看两条规律：</b>符号看 (−1)^n，分母次数看 n+1。所以 n=4 时是 +24/x^5。";}}
 updateStats();render();newQuiz();
 </script>
 </body>
