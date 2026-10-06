@@ -12,8 +12,8 @@
 - Canonical public URL: **https://xu2905815209.github.io/0.0/**
 
 ## Numbering
-- Latest official question: **Q001**
-- Next official question: **Q002**
+- Latest official question: **Q002**
+- Next official question: **Q003**
 
 ## Q001
 **两条红色公式从哪里来？什么时候用？**
@@ -22,11 +22,19 @@
 3. 给 `f'(x)` 图像、面积、一个 `f` 值时优先用牛顿—莱布尼茨
 4. 定积分是带符号面积，轴下方为负
 
+## Q002
+**为什么 1/x 的 n 阶导等于 (-1)^n n!/x^(n+1)？是泰勒展开吗？**
+1. 不是由泰勒展开直接得到，最直接来源是把 1/x 写成 x^(-1) 后反复使用幂函数求导。
+2. 一般式：`(1/x)^(n)=(-1)^n n!/x^(n+1)`。
+3. `1/(1-x)` 的每次链式求导会出现两个负号并抵消，因此 n 阶导为 `n!/(1-x)^(n+1)`。
+4. 原题先部分分式：`1/[x(1-x)] = 1/x + 1/(1-x)`，再分别求高阶导。
+5. `1/x` 在 x=0 无定义，因此不能做以 0 为中心的麦克劳林展开；用泰勒解释反而绕远。
+
 ## Interaction
 搜索、只看未掌握、标记掌握、掌握率、随机复习、随机抽查均已存在。
 
 ## Next task rule
-下一个新的独立疑问原则上编号 **Q002**；若只是 Q001 追问，优先补充 Q001。
+下一个新的独立疑问原则上编号 **Q003**；若只是 Q001 追问，优先补充 Q001。
 
 ## Public deployment status
 - GitHub Pages is enabled with **GitHub Actions** as the source.
