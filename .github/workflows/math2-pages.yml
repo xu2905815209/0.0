@@ -26,6 +26,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate curated lessons before publishing
+        run: |
+          node --check math2-study-site/assets/site.js
+          node --check math2-study-site/scripts/validate.mjs
+          node math2-study-site/scripts/validate.mjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload study site
