@@ -1,0 +1,121 @@
+
+<article class="prose">
+  <section>
+    <span class="eyebrow"><span class="dot"></span>考点判断 · 求 n 阶导数</span>
+    <h2>为什么这种题，第一步要“拆分式、写负幂”？</h2>
+    <p>看到分母里含 <strong>x、1−x 或一次式</strong>，而题目要求求 n 阶导数时，别直接用商法则反复硬算。更好的思路是把式子变成<strong>简单负幂的和</strong>：每一项都有固定的求导规律。</p>
+    <div class="callout blue"><strong>考场识别信号：</strong>“有理分式 + 高阶导数” → 先试部分分式分解 → 每项写成负幂 → 用高阶导公式。</div>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mfrac><mn>1</mn><mrow><mi>x</mi><mo>(</mo><mn>1</mn><mo>−</mo><mi>x</mi><mo>)</mo></mrow></mfrac>
+        <mo>=</mo><mfrac><mn>1</mn><mi>x</mi></mfrac><mo>+</mo>
+        <mfrac><mn>1</mn><mrow><mn>1</mn><mo>−</mo><mi>x</mi></mrow></mfrac>
+      </math>
+    </div>
+    <p>这一步不是猜的：右边通分后，分子就是 <strong>(1−x)+x=1</strong>。原来复杂的一项，变成了两项容易求导的基本模板。</p>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>模板一 · 负幂求导</span>
+    <h2>一阶、二阶、三阶：规律怎么产生？</h2>
+    <p>先写成 <strong>x<sup>−1</sup></strong>，再用普通幂函数法则。先做前三次是为了<strong>看懂规律</strong>，不是考场必须从头推一遍。</p>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mfrac><mn>1</mn><mi>x</mi></mfrac><mo>=</mo><msup><mi>x</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup>
+        <mspace width="2em"/><mfrac><mi>d</mi><mrow><mi>d</mi><mi>x</mi></mrow></mfrac><msup><mi>x</mi><mi>m</mi></msup><mo>=</mo><mi>m</mi><msup><mi>x</mi><mrow><mi>m</mi><mo>−</mo><mn>1</mn></mrow></msup>
+      </math>
+    </div>
+    <div class="timeline">
+      <div class="mini"><b>原函数</b><span class="expr">x<sup>−1</sup></span></div>
+      <div class="mini"><b>第 1 阶</b><span class="expr">−x<sup>−2</sup></span></div>
+      <div class="mini"><b>第 2 阶</b><span class="expr">2x<sup>−3</sup></span></div>
+      <div class="mini"><b>第 3 阶</b><span class="expr">−6x<sup>−4</sup></span></div>
+    </div>
+    <p>每求一次导，发生三件事：<strong>分母中 x 的指数加 1</strong>、<strong>前面的系数累计乘下一个整数</strong>、<strong>正负号交替</strong>。</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mfrac><msup><mi>d</mi><mi>n</mi></msup><mrow><mi>d</mi><msup><mi>x</mi><mi>n</mi></msup></mrow></mfrac>
+        <mo>(</mo><mfrac><mn>1</mn><mi>x</mi></mfrac><mo>)</mo>
+        <mo>=</mo><msup><mrow><mo>(</mo><mo>−</mo><mn>1</mn><mo>)</mo></mrow><mi>n</mi></msup>
+        <mfrac><mrow><mi>n</mi><mo>!</mo></mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mfrac>
+      </math>
+    </div>
+    <div class="callout"><strong>考试建议：</strong>先理解，练到能够熟练默写。考试时记得就直接套；突然忘记时，求前 2～3 阶迅速恢复规律，而不是临场重新推导十几步。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>互动推演</span>
+    <h2>自己切换阶数，观察符号、阶乘与指数</h2>
+    <div class="switcher">
+      <div class="switch-row" role="group" aria-label="切换基本函数">
+        <button type="button" data-derivative-fn="reciprocal" class="active">f(x) = 1/x</button>
+        <button type="button" data-derivative-fn="one-minus">f(x) = 1/(1−x)</button>
+      </div>
+      <div class="slider-row">
+        <label for="order-slider" style="white-space:nowrap">导数阶数 <span id="order-label" class="n-val">3</span></label>
+        <input id="order-slider" type="range" min="0" max="7" value="3" step="1"/>
+      </div>
+      <div id="derivative-display" class="math" aria-live="polite"></div>
+      <div id="derivative-hint" class="callout blue" style="margin-bottom:0"></div>
+    </div>
+    <p>两个公式唯一最容易混淆的地方是<strong>正负号</strong>：</p>
+    <div class="compare">
+      <div>
+        <h3>1/x</h3>
+        <p>指数为负，每次求导都引入一个负号，所以 <strong>(−1)<sup>n</sup></strong>。</p>
+      </div>
+      <div>
+        <h3>1/(1−x)</h3>
+        <p>负幂求导给负号，里面的 <strong>1−x 求导也给负号</strong>。负负得正，所以始终为正。</p>
+      </div>
+    </div>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mfrac><msup><mi>d</mi><mi>n</mi></msup><mrow><mi>d</mi><msup><mi>x</mi><mi>n</mi></msup></mrow></mfrac>
+        <mo>(</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>−</mo><mi>x</mi></mrow></mfrac><mo>)</mo>
+        <mo>=</mo><mfrac><mrow><mi>n</mi><mo>!</mo></mrow><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi>x</mi><mo>)</mo></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mfrac>
+      </math>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>标准母题 · 拆分并合并</span>
+    <h2>把两个模板合在一道真正常见的题型里</h2>
+    <p>题型：设 <strong>y=1/[x(1−x)]</strong>，求第 n 阶导数（x≠0,1）。</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msup><mi>y</mi><mrow><mo>(</mo><mi>n</mi><mo>)</mo></mrow></msup>
+        <mo>=</mo><mi>n</mi><mo>!</mo><mo>[</mo>
+        <mfrac><msup><mrow><mo>(</mo><mo>−</mo><mn>1</mn><mo>)</mo></mrow><mi>n</mi></msup><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mfrac>
+        <mo>+</mo><mfrac><mn>1</mn><msup><mrow><mo>(</mo><mn>1</mn><mo>−</mo><mi>x</mi><mo>)</mo></mrow><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mfrac>
+        <mo>]</mo>
+      </math>
+    </div>
+    <div class="callout warning"><strong>易错点：</strong>只背“1/x 的交替负号”，然后错误地把同一个负号也写到 1/(1−x) 上。这两项的内函数不同，必须留意链式法则。</div>
+    <h3>这和泰勒展开有关吗？</h3>
+    <p>这里直接用<strong>幂函数求导与链式法则</strong>，不需要泰勒展开。虽然 1/(1−x) 可以在 |x|&lt;1 做麦克劳林展开，但 <strong>1/x 在 x=0 不存在</strong>，不能在那里做麦克劳林展开。</p>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>主动回忆</span>
+    <h2>用两道最小练习检验是否掌握</h2>
+    <div class="quiz" data-quiz-correct="1" data-quiz-explain="n=4 时 (−1)⁴=1，4!=24，分母次数是 x^(4+1)=x⁵，所以答案是正的 24/x⁵。">
+      <h3>① (1/x) 的第 4 阶导数是什么？</h3>
+      <div class="options">
+        <button type="button">−24/x⁵</button>
+        <button type="button">24/x⁵</button>
+        <button type="button">24/x⁴</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">先心算，再选答案。</div>
+    </div>
+    <div class="quiz" data-quiz-correct="0" data-quiz-explain="链式法则出现两次负号，抵消为正；二阶导是 +2/(1−x)³。">
+      <h3>② (1/(1−x)) 的第 2 阶导数符号是什么？</h3>
+      <div class="options">
+        <button type="button">正号，系数为 2</button>
+        <button type="button">负号，系数为 −2</button>
+        <button type="button">永远等于 0</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">先选，再看原因。</div>
+    </div>
+  </section>
+</article>
