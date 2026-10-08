@@ -1,207 +1,109 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>数二错疑库｜考研数学二</title>
-<style>
-:root{--bg:#f6f8fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#dfe5ee;--blue:#1557b0;--blue2:#0d3c7b;--green:#167a55;--warn:#fff7e8}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif}
-button,input{font:inherit}.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}.side{background:#0e2f5c;color:#fff;padding:22px 16px;position:sticky;top:0;height:100vh}
-.brand{font-size:23px;font-weight:900}.sub{opacity:.75;font-size:13px;margin:5px 0 20px}.nav{display:block;width:100%;border:0;border-radius:10px;padding:10px 12px;margin:4px 0;background:transparent;color:#fff;text-align:left;cursor:pointer}.nav:hover{background:#ffffff18}
-.main{max-width:1180px;width:100%;padding:24px;margin:auto}.hero{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;padding:26px;border-radius:20px}.hero h1{margin:0 0 8px}.hero p{margin:0;line-height:1.7}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}.stat,.card,.quiz{background:#fff;border:1px solid var(--line);border-radius:15px;padding:16px}.stat b{display:block;font-size:26px}.stat span,.muted{color:var(--muted);font-size:13px}
-.tools{display:grid;grid-template-columns:1fr auto auto;gap:10px;margin:16px 0}.search,.btn{border:1px solid var(--line);border-radius:11px;background:#fff;padding:11px 13px}.btn{cursor:pointer}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card h3{margin:0 0 8px}.badge{display:inline-block;padding:3px 8px;margin:8px 5px 8px 0;border-radius:999px;background:#eef3f9;font-size:12px}.badge.q{background:#fff0e8}.detail{display:none;border-top:1px dashed var(--line);margin-top:12px;padding-top:12px;line-height:1.75}.detail.open{display:block}
-.formula{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center;font-family:"Times New Roman",serif;font-size:21px;margin:10px 0;overflow:auto}.frac{display:inline-grid;grid-template-rows:auto auto;vertical-align:middle;text-align:center;line-height:1.1;margin:0 3px}.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 5px 2px}.frac>span:last-child{padding:2px 5px 0}.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.step{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}.miniopts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.miniopts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer}.answerbox{margin-top:8px;padding:10px;border-radius:9px;background:#f8fafc;border:1px solid var(--line)}.call{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:12px;margin:10px 0}.exam{background:var(--warn)}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.mastered{border-color:#a9d7c4;background:#eef9f4}.section{margin-top:26px}.quizopt{display:block;width:100%;text-align:left;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}.good{background:#eef9f4!important}.bad{background:#fff0ef!important}.hide{display:none}
-@media(max-width:900px){.ladder{grid-template-columns:repeat(2,1fr)}.app{grid-template-columns:1fr}.side{position:relative;height:auto}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.tools{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}}
-.q003-score{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.q003-metric{padding:18px;border-radius:14px;background:linear-gradient(135deg,#edf5ff,#f8fbff);border:1px solid #ccdff9}.q003-metric:nth-child(2){background:#f9fafc;border-color:#dfe5ee}.q003-score-big{font-size:38px;font-weight:850;color:#124b9b;line-height:1.2}.q003-score-big small{font-size:17px}.q003-score-big.secondary{font-size:30px;color:#31445e}.q003-metric strong{display:block;margin:8px 0}.q003-metric p{font-size:15px;color:#4b5567;line-height:1.65;margin-bottom:0}.q003-lesson .formula math{font-size:22px;max-width:100%}.q003-solution summary{color:#134b93}.q003-viz{padding:15px;border:1px solid #d4deec;border-radius:14px;background:#fff;margin:12px 0}.q003-viz-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.q003-viz-top input{min-width:160px;flex:1;max-width:340px;accent-color:#1557b0}.q003-viz-foot{padding:9px 12px;border-radius:9px;background:#f2f6fc;font-weight:750;font-size:14px;line-height:1.6}.q003-lesson h4{font-size:19px;margin:20px 0 10px}.q003-lesson p{line-height:1.75}@media(max-width:650px){.q003-score{grid-template-columns:1fr}.q003-score-big{font-size:32px}}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="theme-color" content="#174e9e"/>
+  <meta name="description" content="考研数学二精选考点：只整理值得反复复习、可以迁移解题的核心方法。"/>
+  <title>数二精华课｜考研数学二</title>
+  <link rel="stylesheet" href="assets/styles.css"/>
 </head>
 <body>
-<div class="app">
-<aside class="side">
-<div class="brand">数二错疑库</div>
-<div class="sub">只收录我真正不会 / 问过的内容</div>
-<button class="nav" onclick="go('top')">总览</button>
-<button class="nav" onclick="go('bank')">错疑题库</button>
-<button class="nav" onclick="go('quiz')">随机抽查</button>
-<div style="margin-top:20px;font-size:13px;line-height:1.7;opacity:.82">长期规则：你每问一个新疑问，我就把它整理成可复习的题卡，并保留在同一个站点。</div>
-</aside>
-<main class="main">
-<section id="top" class="hero">
-<h1>考研数学二 · 错疑学习站</h1>
-<p>这不是教材百科，而是你的个人“不会清单”。正式题目从 Q001 开始；后续每个新疑问都会继续加入，并关联搜索、掌握状态与抽查。</p>
-</section>
+  <header class="topbar">
+    <div class="shell topline">
+      <button type="button" class="brand" id="brand-home" aria-label="返回站点首页">
+        <span class="brand-icon" aria-hidden="true">∫</span>
+        <span>数二精华课<small>MASTER THE METHOD</small></span>
+      </button>
+      <nav class="topnav" aria-label="站点导航">
+        <button type="button" id="nav-courses" class="active">精选专题</button>
+        <button type="button" id="nav-review">快速复习</button>
+      </nav>
+    </div>
+  </header>
 
-<div class="stats">
-<div class="stat"><b id="all">0</b><span>已收录</span></div>
-<div class="stat"><b id="done">0</b><span>已掌握</span></div>
-<div class="stat"><b id="todo">0</b><span>待复习</span></div>
-<div class="stat"><b id="rate">0%</b><span>掌握率</span></div>
-</div>
+  <main class="shell">
+    <div id="home-view">
+      <section class="hero">
+        <div>
+          <span class="eyebrow"><span class="dot"></span>考研数学二 · 个人精选笔记</span>
+          <h1>只留下真正<br/><em>值得反复看的考点。</em></h1>
+          <p>不把提问原样堆起来。每个专题都要解释：<strong>看到什么题面，为什么想到这个方法，怎么一步步推，哪里最容易失分</strong>。再配上简洁练习，方便考前快速检索。</p>
+        </div>
+        <aside class="hero-brief" aria-label="专题筛选原则">
+          <span class="eyebrow">内容入库标准</span>
+          <h3>从疑惑中，筛选真正有用的知识。</h3>
+          <p>只有能迁移到其他题目、符合数学二复习要求，并能做成清晰讲解和练习的知识点，才进入专题库。</p>
+          <div class="steps">
+            <span>考点筛选</span><span>提炼母题</span><span>主动回忆</span>
+          </div>
+        </aside>
+      </section>
 
-<div class="tools">
-<input id="search" class="search" placeholder="搜索：牛顿—莱布尼茨、中值定理、二阶导……">
-<button id="reviewBtn" class="btn">只看未掌握</button>
-<button class="btn primary" onclick="randomReview()">随机复习</button>
-</div>
+      <section class="dashboard" aria-label="学习进度">
+        <div class="dashboard-main">
+          <div class="metric"><strong id="total-count">2</strong><span>精选专题</span></div>
+          <div class="metric"><strong id="done-count">0</strong><span>已掌握</span></div>
+          <div class="metric"><strong id="review-count">2</strong><span>待复习</span></div>
+        </div>
+        <div class="progress-side">
+          <div class="labels"><span>个人掌握进度</span><strong id="progress-label">0%</strong></div>
+          <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+      </section>
 
-<section id="bank" class="section">
-<h2>错疑题库</h2>
-<div id="grid" class="grid"></div>
-</section>
+      <section id="catalog-section" aria-labelledby="catalog-title">
+        <div class="section-header">
+          <div><h2 id="catalog-title">精选专题</h2><p>精简、成体系、可以多次复习，而不是聊天记录集合。</p></div>
+          <input id="search" class="search" type="search" placeholder="搜索：导数、带符号面积、高阶导……" aria-label="搜索精选专题"/>
+        </div>
+        <div class="catalog" id="catalog" aria-live="polite"></div>
+        <div id="empty-state" class="focus" hidden><span class="focus-icon">?</span><div><h3>暂无匹配专题</h3><p>并不是每个问题都会变成课程；需要有明确考点价值才会新增。</p></div></div>
+      </section>
 
-<section id="quiz" class="section">
-<h2>随机抽查</h2>
-<div class="quiz">
-<div id="qq" style="font-size:19px;font-weight:800;margin-bottom:10px"></div>
-<div id="opts"></div>
-<button class="btn primary" onclick="newQuiz()">换一题</button>
-<div id="explain" class="call hide"></div>
-</div>
-</section>
-</main>
-</div>
+      <div class="focus">
+        <span class="focus-icon" aria-hidden="true">✓</span>
+        <div>
+          <h3>这个站点不是“所有提问的档案馆”。</h3>
+          <p>估分、择校、一次性确认等问题在聊天中解决即可；有价值的思路会<strong>去掉提问语境，合并成通用专题</strong>。新问题也可能只是完善旧课程，而非新增一张卡片。</p>
+        </div>
+      </div>
 
-<script>
-var topics=[
-{id:"q001",qno:"Q001",title:"两条红色公式从哪里来？什么时候用？",tags:["中值定理","牛顿—莱布尼茨","高频"],summary:"第一条是拉格朗日中值定理；第二条是牛顿—莱布尼茨。重点是根据题面识别该用哪一个。",detail:
-'<div class="call exam"><b>原始疑问：</b>红色字体的两个公式是什么？我忘记它们从哪里来的了。</div>'+
-'<h4>① 拉格朗日中值定理</h4>'+
-'<div class="formula">f(b)-f(a)=f′(ξ)(b-a)， ξ∈(a,b)</div>'+
-'<div class="formula">[f(b)-f(a)]/(b-a)=f′(ξ)</div>'+
-'<div class="call"><b>人话：</b>整段的平均变化率，等于中间某一点的瞬时变化率。几何上就是某一点切线与两端点割线平行。</div>'+
-'<div class="call"><b>考场信号：</b>出现“存在 ξ”“平均变化率”“证明不等式”“导数估计”时优先想到它。</div>'+
-'<h4>② 牛顿—莱布尼茨公式</h4>'+
-'<div class="formula">f(b)-f(a)=∫ₐᵇ f′(t)dt</div>'+
-'<div class="call"><b>人话：</b>把每一点的瞬时变化率一路累加，就是原函数总共变化了多少。</div>'+
-'<div class="call"><b>图像语言：</b>f′(x) 图像与 x 轴之间的带符号面积 = f 的函数值变化量。轴上方算正，轴下方算负。</div>'+
-'<h4>③ 为什么原题主要用第二条？</h4>'+
-'<p>因为题目给的是 f′(x) 图像、三个区域面积和一个 f 的函数值。看到“导数图像 + 面积 + 一个 f 值”，第一反应就是牛顿—莱布尼茨。</p>'+
-'<div class="formula">f(1)=1-3=-2</div><div class="formula">f(3)=-2+4=2</div><div class="formula">f(4)=2-2=0</div>'+
-'<div class="call exam"><b>考场一眼识别：</b>“存在 ξ / 平均斜率” → 拉格朗日；“f′ 图像 + 面积 + 一个 f 值” → 牛顿—莱布尼茨。</div>'+
-'<details class="call"><summary><b>30 秒自测</b></summary><p>若 ∫₁³f′(x)dx=4，且 f(1)=-2，则 f(3)=？</p><p><b>答案：</b>2，因为 f(3)-f(1)=4。</p></details>'},
-{id:"q002",qno:"Q002",title:"为什么 1/x 的 n 阶导等于 (-1)^n n!/x^(n+1)？是泰勒展开吗？",tags:["高阶导","幂函数","易错"],summary:"不是靠泰勒展开。最直接来源是把 1/x 写成 x⁻¹，然后连续使用幂函数求导公式。",detail:
-'<div class="call exam"><b>原始疑问：</b>教材里 \(1/x\) 的高阶导为什么直接写成 \((-1)^n n!/x^{n+1}\)？是不是从泰勒展开来的？</div>'+
-'<div class="call"><b>先给结论：</b>不是。这一题最直接、最应该掌握的来源是<b>幂函数反复求导</b>。泰勒展开能和它联系起来，但这里没必要用泰勒。</div>'+
-'<h4>① 先把分式改写成幂</h4>'+
-'<div class="formula"><span class="frac"><span>1</span><span>x</span></span> = x<sup>−1</sup></div>'+
-'<p>然后只用你已经学过的幂函数求导：</p>'+
-'<div class="formula">(x<sup>m</sup>)′ = m x<sup>m−1</sup></div>'+
-'<h4>② 连续求 3 次，规律自己就出来了</h4>'+
-'<div class="ladder"><div class="step"><b>原函数</b><br>x<sup>−1</sup></div><div class="step"><b>1 阶</b><br>−x<sup>−2</sup></div><div class="step"><b>2 阶</b><br>2x<sup>−3</sup></div><div class="step"><b>3 阶</b><br>−6x<sup>−4</sup></div></div>'+
-'<p>你观察两件事：</p>'+
-'<div class="call"><b>系数：</b>−1，2，−6，24，… = \((-1)^n n!\)<br><b>x 的次数：</b>−1，−2，−3，−4，… = \(-(n+1)\)</div>'+
-'<h4>③ 所以 n 阶导就是</h4>'+
-'<div class="formula">(<span class="frac"><span>1</span><span>x</span></span>)<sup>(n)</sup> = (−1)(−2)…(−n)x<sup>−(n+1)</sup> = (−1)<sup>n</sup><span class="frac"><span>n!</span><span>x<sup>n+1</sup></span></span></div>'+
-'<div class="call exam"><b>考场记法：</b>看到 \(1/x\)，不要想泰勒，先想 \(x^{-1}\)；每求一次导数，系数再乘一个负整数，分母的 x 次数加 1。</div>'+
-'<h4>④ 那教材里的 1/(1−x) 呢？</h4>'+
-'<div class="formula"><span class="frac"><span>1</span><span>1−x</span></span> = (1−x)<sup>−1</sup></div>'+
-'<p>第一次求导时：外层幂函数给一个负号，内层 \(1−x\) 的导数又给一个负号，两个负号抵消，所以从头到尾都是正的：</p>'+
-'<div class="ladder"><div class="step">1 阶：<br>(1−x)<sup>−2</sup></div><div class="step">2 阶：<br>2(1−x)<sup>−3</sup></div><div class="step">3 阶：<br>6(1−x)<sup>−4</sup></div><div class="step">n 阶：<br><span class="frac"><span>n!</span><span>(1−x)<sup>n+1</sup></span></span></div></div>'+
-'<p>所以原题先做部分分式：</p>'+
-'<div class="formula"><span class="frac"><span>1</span><span>x(1−x)</span></span> = <span class="frac"><span>1</span><span>x</span></span> + <span class="frac"><span>1</span><span>1−x</span></span></div>'+
-'<p>再分别求 n 阶导，最后相加：</p>'+
-'<div class="formula">y<sup>(n)</sup> = (−1)<sup>n</sup><span class="frac"><span>n!</span><span>x<sup>n+1</sup></span></span> + <span class="frac"><span>n!</span><span>(1−x)<sup>n+1</sup></span></span></div>'+
-'<h4>⑤ 和泰勒展开到底什么关系？</h4>'+
-'<div class="call"><b>可以联系，但不是这里的来源。</b><br>例如 \(1/(1−x)\) 在 \(|x|<1\) 时确实能展开成几何级数，并由系数读出各阶导数；但 \(1/x\) 在 x=0 处本身都没有定义，所以根本不存在以 0 为中心的麦克劳林展开。考研这里应优先用“幂函数反复求导”。</div>'+
-'<div class="call exam"><b>一眼识别：</b>分母是 x、(a±bx) 这类一次式，又要求高阶导 → 先尝试写成负幂，再找前 2～3 阶规律；复杂有理式先部分分式拆开。</div>'+
-'<h4>⑥ 考试现场到底是“归纳”还是“背”？</h4>'+
-'<div class="call exam"><b>正确策略：理解后练到接近“背出来”，但忘了也能 10 秒恢复。</b><br><br>备考时不要死背孤立公式，而是把规律练熟：<b>符号看 (−1)<sup>n</sup>，系数看 n!，分母次数看 n+1</b>。考场如果记得，就直接写；如果突然忘了，只求前 2～3 阶，立刻把规律还原出来。<br><br><b>不推荐：</b>每次考试都从零开始慢慢归纳；也不推荐只背结论、完全不知道为什么。</div>'+
-'<div class="formula">最理想状态：看到 <span class="frac"><span>1</span><span>x</span></span> → 脑中直接出现　(−1)<sup>n</sup><span class="frac"><span>n!</span><span>x<sup>n+1</sup></span></span></div>'+
-'<div class="call"><b>你真正需要“背”的只有三件事：</b><br>① 先写成 x<sup>−1</sup>；<br>② 每求一次导，指数再减 1；<br>③ 系数依次乘 −1，−2，−3，… 。<br>一般式自然就出来了。</div>'+
-'<div class="call"><b>策略自测：</b>如果考试时突然忘了公式，你应该怎么办？<div class="miniopts"><button onclick="q002Strategy(this,false)">硬猜公式</button><button onclick="q002Strategy(this,true)">先求 2～3 阶恢复规律</button><button onclick="q002Strategy(this,false)">改用泰勒展开</button></div><div id="q002strategy" class="answerbox">先选一个。</div></div>'+
-'<div class="call"><b>30 秒自测：</b>\((1/x)^{(4)}\) 应该是哪一个？<div class="miniopts"><button onclick="q002Check(this,false)">−24/x⁵</button><button onclick="q002Check(this,true)">24/x⁵</button><button onclick="q002Check(this,false)">4!/x⁴</button></div><div id="q002ans" class="answerbox">先自己选，再看反馈。</div></div>'},
+      <section class="review-area" id="review-section" aria-labelledby="review-title">
+        <div class="section-header" style="margin:0 0 12px">
+          <div><h2 id="review-title">快速回忆</h2><p>每次抽一个考场判断题，检验“我知道该怎么下手吗”。</p></div>
+          <button type="button" class="btn soft" id="next-review">换一题 ↻</button>
+        </div>
+        <div id="review-box" class="review-box"></div>
+      </section>
+    </div>
 
-{id:"q003",qno:"Q003",title:"这道连乘、n 次根号极限，考研数二算几分？",tags:["极限","考研分值","黎曼和","定积分"],summary:"这道题没有固定分值。若作为数二选择/填空，按现行题型是 5 分；若改成解答题只能按试卷设定估计。核心方法：取对数 → 黎曼和。",detail:"\n<div class=\"q003-lesson\">\n  <div class=\"call exam\">\n    <b style=\"font-size:19px\">考研数学二：最可能按 5 分的填空题来练。</b><br>\n    这不是某一年的真题原题，所以<b>不能只根据题目本身断定实际分值</b>。\n  </div>\n\n  <div class=\"q003-score\">\n    <div class=\"q003-metric\">\n      <div class=\"q003-score-big\">5 <small>分</small></div>\n      <strong>选择 / 填空</strong>\n      <p>按现行数学二题型，每题 5 分。这样的独立“求一个极限”，比较适合放在填空题。</p>\n    </div>\n    <div class=\"q003-metric\">\n      <div class=\"q003-score-big secondary\">约 10–12 <small>分</small></div>\n      <strong>假如改成独立解答题</strong>\n      <p>估算，不是固定标准。这一问单独做大题稍显单薄，更可能作为解答题的一个小问。</p>\n    </div>\n  </div>\n  <div class=\"call\"><b>难度：</b>中等偏上（对初学者）。难点不是运算，而是<b>看到连乘和 n 次根，想到“取对数 → 定积分定义”</b>。<br>\n    <span class=\"muted\">参考：<a href=\"https://www.hqwx.com/kaoyan-kaoshi/news/17568916129199.html\" target=\"_blank\" rel=\"noopener noreferrer\">2026 数二题型分值说明</a>（非官方考试大纲）。</span>\n  </div>\n\n  <h4>题目辨认：按最后一项为 n+(n−1) 来理解</h4>\n  <div class=\"formula\" aria-label=\"原题极限\">\n    <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n      <munder><mo>lim</mo><mrow><mi>n</mi><mo>→</mo><mo>∞</mo></mrow></munder>\n      <mfrac><mn>1</mn><mi>n</mi></mfrac>\n      <mroot>\n        <mrow><mi>n</mi><mo>(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>(</mo><mi>n</mi><mo>+</mo><mn>2</mn><mo>)</mo><mo>⋯</mo><mo>(</mo><mn>2</mn><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow>\n        <mi>n</mi>\n      </mroot>\n    </math>\n  </div>\n  <div class=\"call\">照片最后一项有点模糊，这里依据前面的规律按 <b>n+(n−1)=2n−1</b> 理解。如果你实际上写的是 <b>n(n−1)</b>，请告诉我，需重新核对题目。</div>\n\n  <details class=\"call q003-solution\">\n    <summary style=\"cursor:pointer;font-weight:750\">展开：完整求解（先自己想，再点）</summary>\n\n    <h4>① 看到连乘 + n 次根，第一反应是什么？</h4>\n    <p>不是逐项求极限：<b>先把 n 提到根号里面</b>，让每个因子都写成“1 + 一个分数”。因为 n 个因子都含 n，乘起来正好可以提出 n<sup>n</sup>。</p>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <msub><mi>L</mi><mi>n</mi></msub>\n        <mo>=</mo>\n        <mroot>\n          <mrow>\n            <mn>1</mn>\n            <mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><mo>)</mo>\n            <mo>⋯</mo>\n            <mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mi>n</mi></mfrac><mo>)</mo>\n          </mrow>\n          <mi>n</mi>\n        </mroot>\n      </math>\n    </div>\n    <h4>② 取对数：乘积就变成加法</h4>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <mi>ln</mi><msub><mi>L</mi><mi>n</mi></msub><mo>=</mo>\n        <mfrac><mn>1</mn><mi>n</mi></mfrac>\n        <munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></munderover>\n        <mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mi>k</mi><mi>n</mi></mfrac><mo>)</mo>\n      </math>\n    </div>\n    <p>出现“<b>1/n 乘一个求和</b>，而每项都是 <b>f(k/n)</b>”——这就是定积分定义的典型信号。</p>\n    <h4>③ 认出黎曼和，换成定积分</h4>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <munder><mo>lim</mo><mrow><mi>n</mi><mo>→</mo><mo>∞</mo></mrow></munder>\n        <mi>ln</mi><msub><mi>L</mi><mi>n</mi></msub>\n        <mo>=</mo>\n        <msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup>\n        <mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi>\n      </math>\n    </div>\n    <h4>④ 积分，再取指数</h4>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup>\n        <mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi>\n        <mo>=</mo><mn>2</mn><mi>ln</mi><mn>2</mn><mo>−</mo><mn>1</mn>\n      </math>\n    </div>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <munder><mo>lim</mo><mrow><mi>n</mi><mo>→</mo><mo>∞</mo></mrow></munder>\n        <msub><mi>L</mi><mi>n</mi></msub>\n        <mo>=</mo><msup><mi>e</mi><mrow><mn>2</mn><mi>ln</mi><mn>2</mn><mo>−</mo><mn>1</mn></mrow></msup>\n        <mo>=</mo><mfrac><mn>4</mn><mi>e</mi></mfrac>\n      </math>\n    </div>\n    <div class=\"call exam\"><b>这题考场最值钱的一步：</b>不是算出积分，而是看出来“取对数后，求和式就是定积分定义”。</div>\n  </details>\n\n  <h4>交互：为什么 n 越大越接近一个定积分？</h4>\n  <p>拖动滑块，观察下面的矩形（左端点取样）怎样贴近曲线。每个矩形的宽都是 <b>1/n</b>、高度是 <b>ln(1+k/n)</b>。</p>\n  <div class=\"q003-viz\">\n    <div class=\"q003-viz-top\">\n      <label for=\"q003n\">把区间分成 <b id=\"q003nv\">8</b> 份</label>\n      <input type=\"range\" id=\"q003n\" min=\"3\" max=\"60\" step=\"1\" value=\"8\" oninput=\"q003Draw()\">\n    </div>\n    <svg id=\"q003svg\" role=\"img\" aria-label=\"黎曼和逼近对数曲线下面积\" viewBox=\"0 0 640 260\" width=\"100%\" style=\"display:block\"></svg>\n    <div id=\"q003approx\" class=\"q003-viz-foot\"></div>\n  </div>\n\n  <div class=\"call\">\n    <b>考场信号快速记：</b><br>\n    ① 连乘 + n 次根 → 先尝试取对数；<br>\n    ② 对数后出现 1/n 与求和 → 检查是否黎曼和；<br>\n    ③ 能写成 f(k/n) → 转定积分。\n  </div>\n  <div class=\"call exam\">\n    <b>30 秒自测：</b>你第一步最应该想到什么？\n    <div class=\"miniopts\">\n      <button onclick=\"q003Check(this,false)\">把每一项分别求极限</button>\n      <button onclick=\"q003Check(this,true)\">把 n 约出去并取对数</button>\n      <button onclick=\"q003Check(this,false)\">直接用洛必达</button>\n    </div>\n    <div class=\"answerbox\" id=\"q003ans\">选完会告诉你为什么。</div>\n  </div>\n</div>"},
+    <div id="lesson-view" hidden>
+      <div class="lesson-main">
+        <button type="button" id="back-home" class="back-btn">← 返回精选专题</button>
+        <div class="lesson-heading">
+          <span class="eyebrow"><span class="dot"></span>数二精选专题 · <span id="lesson-number"></span></span>
+          <h1 id="lesson-title"></h1>
+          <p id="lesson-summary"></p>
+          <div id="lesson-tags" class="lesson-tags"></div>
+          <div class="lesson-controls">
+            <button type="button" id="lesson-mark" class="btn primary">标记已掌握</button>
+            <span class="muted">读完后可以用下方练习自测。</span>
+          </div>
+        </div>
+        <div id="lesson-content" class="lesson-article" aria-live="polite">
+          <p>正在读取专题内容……</p>
+        </div>
+      </div>
+    </div>
+  </main>
 
-{id:"derivative",title:"函数可导的条件",tags:["导数","基础"],summary:"某点可导 ⇔ 导数定义极限存在且有限；左右导数存在且相等。",detail:'<div class="formula">f′(x₀)=lim[x→x₀] (f(x)-f(x₀))/(x-x₀)</div><div class="call"><b>关系：</b>可导 ⇒ 连续；连续不一定可导。</div>'},
-{id:"second",title:"二阶导存在能推出什么？",tags:["二阶导","易错"],summary:"f″(x₀)存在 ⇒ f′在x₀可导 ⇒ f′在x₀连续。",detail:'<div class="formula">f″存在 → f′可导 → f′连续</div><div class="call exam"><b>别多推：</b>这不等于 f″连续。</div>'},
-{id:"extrema",title:"单调、驻点、极值怎么区分？",tags:["单调","极值"],summary:"f′看增减；f′=0只是驻点候选；极值要看导数左右变号。",detail:'<div class="formula">f′>0 → 递增　　f′<0 → 递减</div><div class="formula">+→− → 极大　　−→+ → 极小</div>'},
-{id:"limit",title:"∞×0 型极限怎么处理？",tags:["极限","未定式"],summary:"∞·0是未定式：先找等价无穷小，不行再改成0/0或∞/∞。",detail:'<div class="formula">ln(1+t) ~ t　(t→0)</div><div class="call">常见路线：等价无穷小 → 改分式 → 洛必达。</div>'},
-{id:"leibniz",title:"莱布尼茨公式：乘积的 n 阶导",tags:["高阶导","组合数"],summary:"把 n 次求导分配给两个因子的所有方式全部加起来。",detail:'<div class="formula">(uv)⁽ⁿ⁾=Σ Cₙᵏ u⁽ᵏ⁾v⁽ⁿ⁻ᵏ⁾</div><div class="call">Cₙᵏ表示 n 次求导里选 k 次作用在一个因子上。</div>'}
-];
-
-var quizBank=[
-{q:"看到 n 次根号里有 n 个数连乘的极限，第一反应？",o:["洛必达","取对数，把乘积改为求和","每项都趋于无穷所以极限无穷","只能用斯特林公式"],a:1,e:"归一化后先取对数，会出现 1/n 求和，再看黎曼和能否转成定积分。"},
-{q:"1/x 的 n 阶导最直接来自哪里？",o:["麦克劳林展开","把 1/x 写成 x⁻¹ 后反复用幂函数求导","洛必达法则","分部积分"],a:1,e:"最直接是幂函数反复求导：x⁻¹ → −x⁻² → 2x⁻³ → −6x⁻⁴ → …，得到 (−1)^n n!/x^(n+1)。"},
-{q:"给出 f′ 图像和面积，想求 f(b)-f(a)，优先想到？",o:["拉格朗日中值定理","牛顿—莱布尼茨","洛必达","泰勒"],a:1,e:"f(b)-f(a)=∫ₐᵇf′(t)dt。"},
-{q:"f″(x₀)存在，可以推出？",o:["f″在x₀连续","f′在x₀连续","附近一定有极值","f″附近同号"],a:1,e:"因为 f″存在就是 f′可导，而可导 ⇒ 连续。"},
-{q:"f′(x₀)=0 能直接说明是极值点吗？",o:["能","不能"],a:1,e:"不能，只能先列为驻点候选，还要看左右变号。"}
-];
-
-var key="math2_mastered_v1";
-var mastered=JSON.parse(localStorage.getItem(key)||"{}");
-var onlyReview=false;
-
-function go(id){document.getElementById(id).scrollIntoView({behavior:"smooth"});}
-function updateStats(){
-var n=topics.length,m=topics.filter(function(t){return mastered[t.id]}).length;
-document.getElementById("all").textContent=n;document.getElementById("done").textContent=m;document.getElementById("todo").textContent=n-m;document.getElementById("rate").textContent=Math.round(m/n*100)+"%";
-}
-function render(){
-var q=document.getElementById("search").value.trim().toLowerCase(),g=document.getElementById("grid");g.innerHTML="";
-topics.filter(function(t){var h=(t.title+" "+t.summary+" "+t.tags.join(" ")).toLowerCase();return(!q||h.indexOf(q)>=0)&&(!onlyReview||!mastered[t.id]);}).forEach(function(t){
-var a=document.createElement("article");a.className="card"+(mastered[t.id]?" mastered":"");a.id=t.id;
-var badges=(t.qno?'<span class="badge q">'+t.qno+'</span>':"")+t.tags.map(function(x){return '<span class="badge">'+x+'</span>';}).join("");
-a.innerHTML='<h3>'+t.title+'</h3><p>'+t.summary+'</p><div>'+badges+'</div><div class="actions"><button class="btn exp">展开讲解</button><button class="btn mark">'+(mastered[t.id]?"✓ 已掌握":"标记掌握")+'</button></div><div class="detail">'+t.detail+'</div>';
-a.querySelector(".exp").onclick=function(){var d=a.querySelector(".detail");d.classList.toggle("open");this.textContent=d.classList.contains("open")?"收起":"展开讲解";if(t.id==="q003"&&d.classList.contains("open"))q003Draw();};
-a.querySelector(".mark").onclick=function(){mastered[t.id]=!mastered[t.id];localStorage.setItem(key,JSON.stringify(mastered));render();updateStats();};
-g.appendChild(a);
-});
-}
-document.getElementById("search").oninput=render;
-document.getElementById("reviewBtn").onclick=function(){onlyReview=!onlyReview;this.textContent=onlyReview?"显示全部":"只看未掌握";render();};
-function randomReview(){var p=topics.filter(function(t){return !mastered[t.id]});if(!p.length)p=topics;var t=p[Math.floor(Math.random()*p.length)];document.getElementById("search").value=t.title;onlyReview=false;document.getElementById("reviewBtn").textContent="只看未掌握";render();setTimeout(function(){var el=document.getElementById(t.id);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.querySelector(".detail").classList.add("open");}},80);}
-function newQuiz(){var x=quizBank[Math.floor(Math.random()*quizBank.length)],q=document.getElementById("qq"),o=document.getElementById("opts"),e=document.getElementById("explain");q.textContent=x.q;o.innerHTML="";e.classList.add("hide");x.o.forEach(function(v,i){var b=document.createElement("button");b.className="quizopt";b.textContent=v;b.onclick=function(){Array.prototype.forEach.call(o.children,function(c){c.disabled=true});b.classList.add(i===x.a?"good":"bad");if(i!==x.a)o.children[x.a].classList.add("good");e.textContent=x.e;e.classList.remove("hide");};o.appendChild(b);});}
-function q002Strategy(btn,ok){var box=document.getElementById("q002strategy");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>这就是最稳的考场保险：x⁻¹ → −x⁻² → 2x⁻³，很快就能恢复符号、阶乘和分母次数三个规律。";}else{btn.classList.add("bad");box.innerHTML="<b>不推荐。</b>这题最稳的是先求 2～3 阶恢复规律，不需要绕去泰勒，也不要凭记忆硬猜。";}}
-function q002Check(btn,ok){var box=document.getElementById("q002ans");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>四阶导的符号是正，因为 (−1)^4=1；系数 4!=24；分母次数变成 x^5。";}else{btn.classList.add("bad");box.innerHTML="<b>再看两条规律：</b>符号看 (−1)^n，分母次数看 n+1。所以 n=4 时是 +24/x^5。";}}
-
-function q003Check(btn,ok){
- var box=document.getElementById("q003ans");if(!box)return;
- Array.from(btn.parentNode.querySelectorAll("button")).forEach(function(x){x.disabled=true;});
- btn.classList.add(ok?"good":"bad");
- box.textContent=ok?"对！第一步先提掉 n 的因子，取对数将连乘变求和，再认出黎曼和。":"再想一想：每项单独求极限、直接洛必达都不适合。这里第一步是提 n，再取对数把乘积化成和。";
-}
-function q003Draw(){
- var input=document.getElementById("q003n"),svg=document.getElementById("q003svg"),out=document.getElementById("q003approx");
- if(!input||!svg||!out)return;
- var n=+input.value,x0=46,w=535,y0=208,h=155, ln2=Math.log(2),sum=0;
- var parts=[];
- parts.push('<rect x="0" y="0" width="640" height="260" rx="9" fill="#fff"/>');
- parts.push('<line x1="'+x0+'" y1="'+y0+'" x2="'+(x0+w+13)+'" y2="'+y0+'" stroke="#68788b" stroke-width="1.5"/>');
- parts.push('<line x1="'+x0+'" y1="'+(y0-h-8)+'" x2="'+x0+'" y2="'+y0+'" stroke="#68788b" stroke-width="1.5"/>');
- for(var k=0;k<n;k++){
-   var v=Math.log(1+k/n);sum+=v;
-   var X=x0+k*w/n, height=v/ln2*h;
-   parts.push('<rect x="'+(X+1).toFixed(2)+'" y="'+(y0-height).toFixed(2)+'" width="'+Math.max(0.5,w/n-1).toFixed(2)+'" height="'+height.toFixed(2)+'" fill="#9fc8ff" stroke="#3b82cf" stroke-width=".7"/>');
- }
- var d="";
- for(var t=0;t<=180;t++){var xx=t/180;var X=x0+w*xx,Y=y0-h*Math.log(1+xx)/ln2;d+=(t?"L":"M")+X.toFixed(2)+","+Y.toFixed(2)+" ";}
- parts.push('<path d="'+d+'" fill="none" stroke="#1157ae" stroke-width="3" stroke-linecap="round"/>');
- parts.push('<text x="'+(x0-4)+'" y="'+(y0+21)+'" font-size="14" text-anchor="middle" fill="#48586c">0</text>');
- parts.push('<text x="'+(x0+w/2)+'" y="'+(y0+21)+'" font-size="14" text-anchor="middle" fill="#48586c">0.5</text>');
- parts.push('<text x="'+(x0+w)+'" y="'+(y0+21)+'" font-size="14" text-anchor="middle" fill="#48586c">1</text>');
- parts.push('<text x="63" y="27" font-size="17" fill="#1157ae">y = ln(1+x)</text>');
- parts.push('<text x="597" y="204" font-size="15" fill="#48586c">x</text>');
- svg.innerHTML=parts.join("");
- var area=sum/n,approx=Math.exp(area),target=4/Math.E;
- document.getElementById("q003nv").textContent=n;
- out.textContent="矩形面积和 ≈ "+area.toFixed(5)+"；原题近似值 ≈ "+approx.toFixed(5)+"；最终极限 4/e ≈ "+target.toFixed(5);
-}
-function q003OpenFromHash(){
- if(location.hash==="#q003"){
-   document.getElementById("search").value="";
-   onlyReview=false;
-   render();
-   var card=document.getElementById("q003");
-   if(card){card.querySelector(".detail").classList.add("open");card.querySelector(".exp").textContent="收起";q003Draw();setTimeout(function(){card.scrollIntoView({behavior:"smooth",block:"start"});},100);}
- }
-}
-
-updateStats();render();newQuiz();q003OpenFromHash();window.addEventListener('hashchange',q003OpenFromHash);
-</script>
+  <footer class="site-foot">
+    <div class="shell">
+      考研数学二 · 精选考点库 · 先理解，再提炼，再复习
+      <div>学习状态暂保存在当前浏览器本地；不同设备之间尚未同步。</div>
+    </div>
+  </footer>
+  <script src="assets/site.js" defer></script>
 </body>
 </html>
