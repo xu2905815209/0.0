@@ -107,6 +107,11 @@ var topics=[
 '<h4>⑤ 和泰勒展开到底什么关系？</h4>'+
 '<div class="call"><b>可以联系，但不是这里的来源。</b><br>例如 \(1/(1−x)\) 在 \(|x|<1\) 时确实能展开成几何级数，并由系数读出各阶导数；但 \(1/x\) 在 x=0 处本身都没有定义，所以根本不存在以 0 为中心的麦克劳林展开。考研这里应优先用“幂函数反复求导”。</div>'+
 '<div class="call exam"><b>一眼识别：</b>分母是 x、(a±bx) 这类一次式，又要求高阶导 → 先尝试写成负幂，再找前 2～3 阶规律；复杂有理式先部分分式拆开。</div>'+
+'<h4>⑥ 考试现场到底是“归纳”还是“背”？</h4>'+
+'<div class="call exam"><b>正确策略：理解后练到接近“背出来”，但忘了也能 10 秒恢复。</b><br><br>备考时不要死背孤立公式，而是把规律练熟：<b>符号看 (−1)<sup>n</sup>，系数看 n!，分母次数看 n+1</b>。考场如果记得，就直接写；如果突然忘了，只求前 2～3 阶，立刻把规律还原出来。<br><br><b>不推荐：</b>每次考试都从零开始慢慢归纳；也不推荐只背结论、完全不知道为什么。</div>'+
+'<div class="formula">最理想状态：看到 <span class="frac"><span>1</span><span>x</span></span> → 脑中直接出现　(−1)<sup>n</sup><span class="frac"><span>n!</span><span>x<sup>n+1</sup></span></span></div>'+
+'<div class="call"><b>你真正需要“背”的只有三件事：</b><br>① 先写成 x<sup>−1</sup>；<br>② 每求一次导，指数再减 1；<br>③ 系数依次乘 −1，−2，−3，… 。<br>一般式自然就出来了。</div>'+
+'<div class="call"><b>策略自测：</b>如果考试时突然忘了公式，你应该怎么办？<div class="miniopts"><button onclick="q002Strategy(this,false)">硬猜公式</button><button onclick="q002Strategy(this,true)">先求 2～3 阶恢复规律</button><button onclick="q002Strategy(this,false)">改用泰勒展开</button></div><div id="q002strategy" class="answerbox">先选一个。</div></div>'+
 '<div class="call"><b>30 秒自测：</b>\((1/x)^{(4)}\) 应该是哪一个？<div class="miniopts"><button onclick="q002Check(this,false)">−24/x⁵</button><button onclick="q002Check(this,true)">24/x⁵</button><button onclick="q002Check(this,false)">4!/x⁴</button></div><div id="q002ans" class="answerbox">先自己选，再看反馈。</div></div>'},
 
 {id:"derivative",title:"函数可导的条件",tags:["导数","基础"],summary:"某点可导 ⇔ 导数定义极限存在且有限；左右导数存在且相等。",detail:'<div class="formula">f′(x₀)=lim[x→x₀] (f(x)-f(x₀))/(x-x₀)</div><div class="call"><b>关系：</b>可导 ⇒ 连续；连续不一定可导。</div>'},
@@ -147,6 +152,7 @@ document.getElementById("search").oninput=render;
 document.getElementById("reviewBtn").onclick=function(){onlyReview=!onlyReview;this.textContent=onlyReview?"显示全部":"只看未掌握";render();};
 function randomReview(){var p=topics.filter(function(t){return !mastered[t.id]});if(!p.length)p=topics;var t=p[Math.floor(Math.random()*p.length)];document.getElementById("search").value=t.title;onlyReview=false;document.getElementById("reviewBtn").textContent="只看未掌握";render();setTimeout(function(){var el=document.getElementById(t.id);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.querySelector(".detail").classList.add("open");}},80);}
 function newQuiz(){var x=quizBank[Math.floor(Math.random()*quizBank.length)],q=document.getElementById("qq"),o=document.getElementById("opts"),e=document.getElementById("explain");q.textContent=x.q;o.innerHTML="";e.classList.add("hide");x.o.forEach(function(v,i){var b=document.createElement("button");b.className="quizopt";b.textContent=v;b.onclick=function(){Array.prototype.forEach.call(o.children,function(c){c.disabled=true});b.classList.add(i===x.a?"good":"bad");if(i!==x.a)o.children[x.a].classList.add("good");e.textContent=x.e;e.classList.remove("hide");};o.appendChild(b);});}
+function q002Strategy(btn,ok){var box=document.getElementById("q002strategy");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>这就是最稳的考场保险：x⁻¹ → −x⁻² → 2x⁻³，很快就能恢复符号、阶乘和分母次数三个规律。";}else{btn.classList.add("bad");box.innerHTML="<b>不推荐。</b>这题最稳的是先求 2～3 阶恢复规律，不需要绕去泰勒，也不要凭记忆硬猜。";}}
 function q002Check(btn,ok){var box=document.getElementById("q002ans");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>四阶导的符号是正，因为 (−1)^4=1；系数 4!=24；分母次数变成 x^5。";}else{btn.classList.add("bad");box.innerHTML="<b>再看两条规律：</b>符号看 (−1)^n，分母次数看 n+1。所以 n=4 时是 +24/x^5。";}}
 updateStats();render();newQuiz();
 </script>
