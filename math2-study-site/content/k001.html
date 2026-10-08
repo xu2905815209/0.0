@@ -1,0 +1,99 @@
+
+<article class="prose">
+  <section>
+    <span class="eyebrow"><span class="dot"></span>考点判断 · 先想题目给了什么</span>
+    <h2>为什么给的是导数图像，却能求原函数的最值？</h2>
+    <p>你知道某个点的函数值，例如 <strong>f(0)=1</strong>。题目又给出了 <strong>y=f′(x)</strong> 的图像以及三个区域面积。它没有给出 f(x) 的解析式，你当然没法直接把 x 代入求值。</p>
+    <p>此时应该想到：<strong>导数告诉你函数在怎么变；把这段变化累积起来，就能从 f(0) 推出 f(1)、f(3)、f(4)。</strong></p>
+    <div class="callout blue"><strong>考场识别信号：</strong>“给 f′ 的图像 + 轴围成的面积 + 一个 f 值” → 直接联想牛顿—莱布尼茨，而不是先去猜 f 的解析式。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>核心公式 01</span>
+    <h2>牛顿—莱布尼茨：面积就是函数的变化量</h2>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mi>f</mi><mo>(</mo><mi>b</mi><mo>)</mo><mo>−</mo><mi>f</mi><mo>(</mo><mi>a</mi><mo>)</mo>
+        <mo>=</mo><msubsup><mo>∫</mo><mi>a</mi><mi>b</mi></msubsup><msup><mi>f</mi><mo>′</mo></msup><mo>(</mo><mi>t</mi><mo>)</mo><mi>d</mi><mi>t</mi>
+      </math>
+    </div>
+    <p><strong>左边</strong>是最终值减初始值，也就是“函数值变了多少”；<strong>右边</strong>是在整个区间里，把导数的微小变化逐步累加。</p>
+    <div class="callout warning"><strong>最容易丢分：</strong>定积分是<strong>带符号面积</strong>。图像在 x 轴上方算正，下面算负；题目给的几何面积 S 都是正数，算定积分时要自己补符号。</div>
+
+    <figure class="vis-frame">
+      <svg id="areas-plot" viewBox="0 0 760 264" role="img" aria-label="导数曲线三个带符号面积示意图">
+        <rect width="760" height="264" rx="8" fill="#fff"/>
+        <path class="garea active" data-area="0" d="M90 122 L90 146 C151 227 210 207 250 122 Z" fill="#f3bda2" stroke="#ce8059" stroke-width="1.4"/>
+        <path class="garea" data-area="1" d="M250 122 C328 16 441 16 525 122 Z" fill="#9adbd1" stroke="#209a88" stroke-width="1.4"/>
+        <path class="garea" data-area="2" d="M525 122 C590 216 640 206 690 165 L690 122 Z" fill="#f3bda2" stroke="#ce8059" stroke-width="1.4"/>
+        <line x1="65" y1="122" x2="720" y2="122" stroke="#677d91" stroke-width="1.7"/>
+        <line x1="90" y1="24" x2="90" y2="244" stroke="#677d91" stroke-width="1.7"/>
+        <path d="M90 146 C151 227 210 207 250 122 C328 16 441 16 525 122 C590 216 640 206 690 165" stroke="#194d79" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <text x="99" y="28" font-size="20" fill="#315773">y=f′(x)</text>
+        <text x="727" y="128" font-size="17" fill="#315773">x</text>
+        <text x="78" y="141" font-size="16" fill="#315773">0</text>
+        <text x="245" y="146" font-size="17" fill="#315773">1</text>
+        <text x="521" y="146" font-size="17" fill="#315773">3</text>
+        <text x="687" y="145" font-size="17" fill="#315773">4</text>
+        <text x="158" y="188" font-size="22" text-anchor="middle" fill="#a45330">S₁=3</text>
+        <text x="390" y="81" font-size="22" text-anchor="middle" fill="#126d63">S₂=4</text>
+        <text x="622" y="180" font-size="22" text-anchor="middle" fill="#a45330">S₃=2</text>
+      </svg>
+      <figcaption>示意图，仅表示正负与区间；面积数值采用题目给定值，不按图形比例计算。</figcaption>
+    </figure>
+
+    <div class="segment-tabs" role="group" aria-label="依次查看三个区间的函数增量">
+      <button type="button" data-area-btn="0" class="active">① 从 0 到 1</button>
+      <button type="button" data-area-btn="1">② 从 1 到 3</button>
+      <button type="button" data-area-btn="2">③ 从 3 到 4</button>
+    </div>
+    <div class="segment-explain" id="area-explain" aria-live="polite">0→1：f′(x)&lt;0，定积分等于 −3，所以 f(1)=f(0)−3=−2。</div>
+
+    <div class="value-grid">
+      <div class="v"><span>起点</span><strong>f(0)=1</strong></div>
+      <div class="v strong"><span>递减后</span><strong>f(1)=−2</strong></div>
+      <div class="v strong"><span>递增后</span><strong>f(3)=2</strong></div>
+      <div class="v"><span>再递减</span><strong>f(4)=0</strong></div>
+    </div>
+    <div class="callout"><strong>最值怎么判？</strong>导数从负→正时 f 在 1 处取极小值 −2；从正→负时 f 在 3 处取极大值 2。再比端点 f(0)=1、f(4)=0，得区间最大值 <strong>2</strong>、最小值 <strong>−2</strong>。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>核心公式 02</span>
+    <h2>拉格朗日中值定理：不是“面积”，而是“找一个中间斜率”</h2>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mi>f</mi><mo>(</mo><mi>b</mi><mo>)</mo><mo>−</mo><mi>f</mi><mo>(</mo><mi>a</mi><mo>)</mo>
+        <mo>=</mo><msup><mi>f</mi><mo>′</mo></msup><mo>(</mo><mi>ξ</mi><mo>)</mo><mo>(</mo><mi>b</mi><mo>−</mo><mi>a</mi><mo>)</mo>
+      </math>
+    </div>
+    <p>前提是 <strong>f 在 [a,b] 连续、在 (a,b) 可导</strong>，才能保证中间<strong>存在某一点 ξ</strong>，它的瞬时变化率等于整段平均变化率。</p>
+    <div class="compare">
+      <div>
+        <h3>出现「图像面积」</h3>
+        <p>把整段的导数<strong>累加</strong>，得到确切的函数增量。</p>
+        <div class="pill-row"><span class="pill">牛顿—莱布尼茨</span><span class="pill">定积分</span></div>
+      </div>
+      <div>
+        <h3>出现「存在 ξ」</h3>
+        <p>把整段变化对应到<strong>中间某一点</strong>的斜率。</p>
+        <div class="pill-row"><span class="pill">拉格朗日中值定理</span><span class="pill">平均变化率</span></div>
+      </div>
+    </div>
+    <div class="callout blue"><strong>一句话区分：</strong>中值定理侧重“有一个点”；牛顿—莱布尼茨侧重“整段的累积”。两者都联系导数与函数增量，但不是同一种做题工具。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>主动回忆</span>
+    <h2>做完别立刻看解析，先检验是否真的会</h2>
+    <div class="quiz" data-quiz-correct="1" data-quiz-explain="从 0 到 1 函数减少 3：f(1)=1−3=−2；再从 1 到 3 增加 4：f(3)=−2+4=2。">
+      <h3>已知 f(0)=1，∫₀¹f′(t)dt=−3，∫₁³f′(t)dt=4，那么 f(3)=？</h3>
+      <div class="options">
+        <button type="button">−2</button>
+        <button type="button">2</button>
+        <button type="button">4</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">选一个答案，再查看反馈。</div>
+    </div>
+  </section>
+</article>
