@@ -55,7 +55,7 @@
       <section id="catalog-section" aria-labelledby="catalog-title">
         <div class="section-header">
           <div><h2 id="catalog-title">精选专题</h2><p>精简、成体系、可以多次复习，而不是聊天记录集合。</p></div>
-          <input id="search" class="search" type="search" placeholder="搜索：导数、带符号面积、高阶导……" aria-label="搜索精选专题"/>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center"><input id="search" class="search" type="search" placeholder="搜索：导数、带符号面积、高阶导……" aria-label="搜索精选专题"/><button type="button" id="only-unlearned" class="btn soft">只看未掌握</button></div>
         </div>
         <div class="catalog" id="catalog" aria-live="polite"></div>
         <div id="empty-state" class="focus" hidden><span class="focus-icon">?</span><div><h3>暂无匹配专题</h3><p>并不是每个问题都会变成课程；需要有明确考点价值才会新增。</p></div></div>
