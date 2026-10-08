@@ -16,6 +16,7 @@ button,input{font:inherit}.app{display:grid;grid-template-columns:260px 1fr;min-
 .formula{background:#fbfcfe;border:1px solid var(--line);border-radius:11px;padding:13px;text-align:center;font-family:"Times New Roman",serif;font-size:21px;margin:10px 0;overflow:auto}.frac{display:inline-grid;grid-template-rows:auto auto;vertical-align:middle;text-align:center;line-height:1.1;margin:0 3px}.frac>span:first-child{border-bottom:1.5px solid currentColor;padding:0 5px 2px}.frac>span:last-child{padding:2px 5px 0}.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}.step{background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}.miniopts{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.miniopts button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer}.answerbox{margin-top:8px;padding:10px;border-radius:9px;background:#f8fafc;border:1px solid var(--line)}.call{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:12px;margin:10px 0}.exam{background:var(--warn)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.mastered{border-color:#a9d7c4;background:#eef9f4}.section{margin-top:26px}.quizopt{display:block;width:100%;text-align:left;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff}.good{background:#eef9f4!important}.bad{background:#fff0ef!important}.hide{display:none}
 @media(max-width:900px){.ladder{grid-template-columns:repeat(2,1fr)}.app{grid-template-columns:1fr}.side{position:relative;height:auto}.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.tools{grid-template-columns:1fr 1fr}.search{grid-column:1/-1}}
+.q003-score{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.q003-metric{padding:18px;border-radius:14px;background:linear-gradient(135deg,#edf5ff,#f8fbff);border:1px solid #ccdff9}.q003-metric:nth-child(2){background:#f9fafc;border-color:#dfe5ee}.q003-score-big{font-size:38px;font-weight:850;color:#124b9b;line-height:1.2}.q003-score-big small{font-size:17px}.q003-score-big.secondary{font-size:30px;color:#31445e}.q003-metric strong{display:block;margin:8px 0}.q003-metric p{font-size:15px;color:#4b5567;line-height:1.65;margin-bottom:0}.q003-lesson .formula math{font-size:22px;max-width:100%}.q003-solution summary{color:#134b93}.q003-viz{padding:15px;border:1px solid #d4deec;border-radius:14px;background:#fff;margin:12px 0}.q003-viz-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.q003-viz-top input{min-width:160px;flex:1;max-width:340px;accent-color:#1557b0}.q003-viz-foot{padding:9px 12px;border-radius:9px;background:#f2f6fc;font-weight:750;font-size:14px;line-height:1.6}.q003-lesson h4{font-size:19px;margin:20px 0 10px}.q003-lesson p{line-height:1.75}@media(max-width:650px){.q003-score{grid-template-columns:1fr}.q003-score-big{font-size:32px}}
 </style>
 </head>
 <body>
@@ -114,6 +115,8 @@ var topics=[
 '<div class="call"><b>策略自测：</b>如果考试时突然忘了公式，你应该怎么办？<div class="miniopts"><button onclick="q002Strategy(this,false)">硬猜公式</button><button onclick="q002Strategy(this,true)">先求 2～3 阶恢复规律</button><button onclick="q002Strategy(this,false)">改用泰勒展开</button></div><div id="q002strategy" class="answerbox">先选一个。</div></div>'+
 '<div class="call"><b>30 秒自测：</b>\((1/x)^{(4)}\) 应该是哪一个？<div class="miniopts"><button onclick="q002Check(this,false)">−24/x⁵</button><button onclick="q002Check(this,true)">24/x⁵</button><button onclick="q002Check(this,false)">4!/x⁴</button></div><div id="q002ans" class="answerbox">先自己选，再看反馈。</div></div>'},
 
+{id:"q003",qno:"Q003",title:"这道连乘、n 次根号极限，考研数二算几分？",tags:["极限","考研分值","黎曼和","定积分"],summary:"这道题没有固定分值。若作为数二选择/填空，按现行题型是 5 分；若改成解答题只能按试卷设定估计。核心方法：取对数 → 黎曼和。",detail:"\n<div class=\"q003-lesson\">\n  <div class=\"call exam\">\n    <b style=\"font-size:19px\">考研数学二：最可能按 5 分的填空题来练。</b><br>\n    这不是某一年的真题原题，所以<b>不能只根据题目本身断定实际分值</b>。\n  </div>\n\n  <div class=\"q003-score\">\n    <div class=\"q003-metric\">\n      <div class=\"q003-score-big\">5 <small>分</small></div>\n      <strong>选择 / 填空</strong>\n      <p>按现行数学二题型，每题 5 分。这样的独立“求一个极限”，比较适合放在填空题。</p>\n    </div>\n    <div class=\"q003-metric\">\n      <div class=\"q003-score-big secondary\">约 10–12 <small>分</small></div>\n      <strong>假如改成独立解答题</strong>\n      <p>估算，不是固定标准。这一问单独做大题稍显单薄，更可能作为解答题的一个小问。</p>\n    </div>\n  </div>\n  <div class=\"call\"><b>难度：</b>中等偏上（对初学者）。难点不是运算，而是<b>看到连乘和 n 次根，想到“取对数 → 定积分定义”</b>。<br>\n    <span class=\"muted\">参考：<a href=\"https://www.hqwx.com/kaoyan-kaoshi/news/17568916129199.html\" target=\"_blank\" rel=\"noopener noreferrer\">2026 数二题型分值说明</a>（非官方考试大纲）。</span>\n  </div>\n\n  <h4>题目辨认：按最后一项为 n+(n−1) 来理解</h4>\n  <div class=\"formula\" aria-label=\"原题极限\">\n    <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n      <munder><mo>lim</mo><mrow><mi>n</mi><mo>→</mo><mo>∞</mo></mrow></munder>\n      <mfrac><mn>1</mn><mi>n</mi></mfrac>\n      <mroot>\n        <mrow><mi>n</mi><mo>(</mo><mi>n</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>(</mo><mi>n</mi><mo>+</mo><mn>2</mn><mo>)</mo><mo>⋯</mo><mo>(</mo><mn>2</mn><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow>\n        <mi>n</mi>\n      </mroot>\n    </math>\n  </div>\n  <div class=\"call\">照片最后一项有点模糊，这里依据前面的规律按 <b>n+(n−1)=2n−1</b> 理解。如果你实际上写的是 <b>n(n−1)</b>，请告诉我，需重新核对题目。</div>\n\n  <details class=\"call q003-solution\">\n    <summary style=\"cursor:pointer;font-weight:750\">展开：完整求解（先自己想，再点）</summary>\n\n    <h4>① 看到连乘 + n 次根，第一反应是什么？</h4>\n    <p>不是逐项求极限：<b>先把 n 提到根号里面</b>，让每个因子都写成“1 + 一个分数”。因为 n 个因子都含 n，乘起来正好可以提出 n<sup>n</sup>。</p>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <msub><mi>L</mi><mi>n</mi></msub>\n        <mo>=</mo>\n        <mroot>\n          <mrow>\n            <mn>1</mn>\n            <mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><mo>)</mo>\n            <mo>⋯</mo>\n            <mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><mi>n</mi></mfrac><mo>)</mo>\n          </mrow>\n          <mi>n</mi>\n        </mroot>\n      </math>\n    </div>\n    <h4>② 取对数：乘积就变成加法</h4>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <mi>ln</mi><msub><mi>L</mi><mi>n</mi></msub><mo>=</mo>\n        <mfrac><mn>1</mn><mi>n</mi></mfrac>\n        <munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>0</mn></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></munderover>\n        <mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mfrac><mi>k</mi><mi>n</mi></mfrac><mo>)</mo>\n      </math>\n    </div>\n    <p>出现“<b>1/n 乘一个求和</b>，而每项都是 <b>f(k/n)</b>”——这就是定积分定义的典型信号。</p>\n    <h4>③ 认出黎曼和，换成定积分</h4>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <munder><mo>lim</mo><mrow><mi>n</mi><mo>→</mo><mo>∞</mo></mrow></munder>\n        <mi>ln</mi><msub><mi>L</mi><mi>n</mi></msub>\n        <mo>=</mo>\n        <msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup>\n        <mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi>\n      </math>\n    </div>\n    <h4>④ 积分，再取指数</h4>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <msubsup><mo>∫</mo><mn>0</mn><mn>1</mn></msubsup>\n        <mi>ln</mi><mo>(</mo><mn>1</mn><mo>+</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi>\n        <mo>=</mo><mn>2</mn><mi>ln</mi><mn>2</mn><mo>−</mo><mn>1</mn>\n      </math>\n    </div>\n    <div class=\"formula\">\n      <math display=\"block\" xmlns=\"http://www.w3.org/1998/Math/MathML\">\n        <munder><mo>lim</mo><mrow><mi>n</mi><mo>→</mo><mo>∞</mo></mrow></munder>\n        <msub><mi>L</mi><mi>n</mi></msub>\n        <mo>=</mo><msup><mi>e</mi><mrow><mn>2</mn><mi>ln</mi><mn>2</mn><mo>−</mo><mn>1</mn></mrow></msup>\n        <mo>=</mo><mfrac><mn>4</mn><mi>e</mi></mfrac>\n      </math>\n    </div>\n    <div class=\"call exam\"><b>这题考场最值钱的一步：</b>不是算出积分，而是看出来“取对数后，求和式就是定积分定义”。</div>\n  </details>\n\n  <h4>交互：为什么 n 越大越接近一个定积分？</h4>\n  <p>拖动滑块，观察下面的矩形（左端点取样）怎样贴近曲线。每个矩形的宽都是 <b>1/n</b>、高度是 <b>ln(1+k/n)</b>。</p>\n  <div class=\"q003-viz\">\n    <div class=\"q003-viz-top\">\n      <label for=\"q003n\">把区间分成 <b id=\"q003nv\">8</b> 份</label>\n      <input type=\"range\" id=\"q003n\" min=\"3\" max=\"60\" step=\"1\" value=\"8\" oninput=\"q003Draw()\">\n    </div>\n    <svg id=\"q003svg\" role=\"img\" aria-label=\"黎曼和逼近对数曲线下面积\" viewBox=\"0 0 640 260\" width=\"100%\" style=\"display:block\"></svg>\n    <div id=\"q003approx\" class=\"q003-viz-foot\"></div>\n  </div>\n\n  <div class=\"call\">\n    <b>考场信号快速记：</b><br>\n    ① 连乘 + n 次根 → 先尝试取对数；<br>\n    ② 对数后出现 1/n 与求和 → 检查是否黎曼和；<br>\n    ③ 能写成 f(k/n) → 转定积分。\n  </div>\n  <div class=\"call exam\">\n    <b>30 秒自测：</b>你第一步最应该想到什么？\n    <div class=\"miniopts\">\n      <button onclick=\"q003Check(this,false)\">把每一项分别求极限</button>\n      <button onclick=\"q003Check(this,true)\">把 n 约出去并取对数</button>\n      <button onclick=\"q003Check(this,false)\">直接用洛必达</button>\n    </div>\n    <div class=\"answerbox\" id=\"q003ans\">选完会告诉你为什么。</div>\n  </div>\n</div>"},
+
 {id:"derivative",title:"函数可导的条件",tags:["导数","基础"],summary:"某点可导 ⇔ 导数定义极限存在且有限；左右导数存在且相等。",detail:'<div class="formula">f′(x₀)=lim[x→x₀] (f(x)-f(x₀))/(x-x₀)</div><div class="call"><b>关系：</b>可导 ⇒ 连续；连续不一定可导。</div>'},
 {id:"second",title:"二阶导存在能推出什么？",tags:["二阶导","易错"],summary:"f″(x₀)存在 ⇒ f′在x₀可导 ⇒ f′在x₀连续。",detail:'<div class="formula">f″存在 → f′可导 → f′连续</div><div class="call exam"><b>别多推：</b>这不等于 f″连续。</div>'},
 {id:"extrema",title:"单调、驻点、极值怎么区分？",tags:["单调","极值"],summary:"f′看增减；f′=0只是驻点候选；极值要看导数左右变号。",detail:'<div class="formula">f′>0 → 递增　　f′<0 → 递减</div><div class="formula">+→− → 极大　　−→+ → 极小</div>'},
@@ -122,6 +125,7 @@ var topics=[
 ];
 
 var quizBank=[
+{q:"看到 n 次根号里有 n 个数连乘的极限，第一反应？",o:["洛必达","取对数，把乘积改为求和","每项都趋于无穷所以极限无穷","只能用斯特林公式"],a:1,e:"归一化后先取对数，会出现 1/n 求和，再看黎曼和能否转成定积分。"},
 {q:"1/x 的 n 阶导最直接来自哪里？",o:["麦克劳林展开","把 1/x 写成 x⁻¹ 后反复用幂函数求导","洛必达法则","分部积分"],a:1,e:"最直接是幂函数反复求导：x⁻¹ → −x⁻² → 2x⁻³ → −6x⁻⁴ → …，得到 (−1)^n n!/x^(n+1)。"},
 {q:"给出 f′ 图像和面积，想求 f(b)-f(a)，优先想到？",o:["拉格朗日中值定理","牛顿—莱布尼茨","洛必达","泰勒"],a:1,e:"f(b)-f(a)=∫ₐᵇf′(t)dt。"},
 {q:"f″(x₀)存在，可以推出？",o:["f″在x₀连续","f′在x₀连续","附近一定有极值","f″附近同号"],a:1,e:"因为 f″存在就是 f′可导，而可导 ⇒ 连续。"},
@@ -143,7 +147,7 @@ topics.filter(function(t){var h=(t.title+" "+t.summary+" "+t.tags.join(" ")).toL
 var a=document.createElement("article");a.className="card"+(mastered[t.id]?" mastered":"");a.id=t.id;
 var badges=(t.qno?'<span class="badge q">'+t.qno+'</span>':"")+t.tags.map(function(x){return '<span class="badge">'+x+'</span>';}).join("");
 a.innerHTML='<h3>'+t.title+'</h3><p>'+t.summary+'</p><div>'+badges+'</div><div class="actions"><button class="btn exp">展开讲解</button><button class="btn mark">'+(mastered[t.id]?"✓ 已掌握":"标记掌握")+'</button></div><div class="detail">'+t.detail+'</div>';
-a.querySelector(".exp").onclick=function(){var d=a.querySelector(".detail");d.classList.toggle("open");this.textContent=d.classList.contains("open")?"收起":"展开讲解";};
+a.querySelector(".exp").onclick=function(){var d=a.querySelector(".detail");d.classList.toggle("open");this.textContent=d.classList.contains("open")?"收起":"展开讲解";if(t.id==="q003"&&d.classList.contains("open"))q003Draw();};
 a.querySelector(".mark").onclick=function(){mastered[t.id]=!mastered[t.id];localStorage.setItem(key,JSON.stringify(mastered));render();updateStats();};
 g.appendChild(a);
 });
@@ -154,7 +158,50 @@ function randomReview(){var p=topics.filter(function(t){return !mastered[t.id]})
 function newQuiz(){var x=quizBank[Math.floor(Math.random()*quizBank.length)],q=document.getElementById("qq"),o=document.getElementById("opts"),e=document.getElementById("explain");q.textContent=x.q;o.innerHTML="";e.classList.add("hide");x.o.forEach(function(v,i){var b=document.createElement("button");b.className="quizopt";b.textContent=v;b.onclick=function(){Array.prototype.forEach.call(o.children,function(c){c.disabled=true});b.classList.add(i===x.a?"good":"bad");if(i!==x.a)o.children[x.a].classList.add("good");e.textContent=x.e;e.classList.remove("hide");};o.appendChild(b);});}
 function q002Strategy(btn,ok){var box=document.getElementById("q002strategy");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>这就是最稳的考场保险：x⁻¹ → −x⁻² → 2x⁻³，很快就能恢复符号、阶乘和分母次数三个规律。";}else{btn.classList.add("bad");box.innerHTML="<b>不推荐。</b>这题最稳的是先求 2～3 阶恢复规律，不需要绕去泰勒，也不要凭记忆硬猜。";}}
 function q002Check(btn,ok){var box=document.getElementById("q002ans");if(!box)return;var all=btn.parentNode.querySelectorAll("button");all.forEach(function(b){b.disabled=true;});if(ok){btn.classList.add("good");box.innerHTML="<b>对。</b>四阶导的符号是正，因为 (−1)^4=1；系数 4!=24；分母次数变成 x^5。";}else{btn.classList.add("bad");box.innerHTML="<b>再看两条规律：</b>符号看 (−1)^n，分母次数看 n+1。所以 n=4 时是 +24/x^5。";}}
-updateStats();render();newQuiz();
+
+function q003Check(btn,ok){
+ var box=document.getElementById("q003ans");if(!box)return;
+ Array.from(btn.parentNode.querySelectorAll("button")).forEach(function(x){x.disabled=true;});
+ btn.classList.add(ok?"good":"bad");
+ box.textContent=ok?"对！第一步先提掉 n 的因子，取对数将连乘变求和，再认出黎曼和。":"再想一想：每项单独求极限、直接洛必达都不适合。这里第一步是提 n，再取对数把乘积化成和。";
+}
+function q003Draw(){
+ var input=document.getElementById("q003n"),svg=document.getElementById("q003svg"),out=document.getElementById("q003approx");
+ if(!input||!svg||!out)return;
+ var n=+input.value,x0=46,w=535,y0=208,h=155, ln2=Math.log(2),sum=0;
+ var parts=[];
+ parts.push('<rect x="0" y="0" width="640" height="260" rx="9" fill="#fff"/>');
+ parts.push('<line x1="'+x0+'" y1="'+y0+'" x2="'+(x0+w+13)+'" y2="'+y0+'" stroke="#68788b" stroke-width="1.5"/>');
+ parts.push('<line x1="'+x0+'" y1="'+(y0-h-8)+'" x2="'+x0+'" y2="'+y0+'" stroke="#68788b" stroke-width="1.5"/>');
+ for(var k=0;k<n;k++){
+   var v=Math.log(1+k/n);sum+=v;
+   var X=x0+k*w/n, height=v/ln2*h;
+   parts.push('<rect x="'+(X+1).toFixed(2)+'" y="'+(y0-height).toFixed(2)+'" width="'+Math.max(0.5,w/n-1).toFixed(2)+'" height="'+height.toFixed(2)+'" fill="#9fc8ff" stroke="#3b82cf" stroke-width=".7"/>');
+ }
+ var d="";
+ for(var t=0;t<=180;t++){var xx=t/180;var X=x0+w*xx,Y=y0-h*Math.log(1+xx)/ln2;d+=(t?"L":"M")+X.toFixed(2)+","+Y.toFixed(2)+" ";}
+ parts.push('<path d="'+d+'" fill="none" stroke="#1157ae" stroke-width="3" stroke-linecap="round"/>');
+ parts.push('<text x="'+(x0-4)+'" y="'+(y0+21)+'" font-size="14" text-anchor="middle" fill="#48586c">0</text>');
+ parts.push('<text x="'+(x0+w/2)+'" y="'+(y0+21)+'" font-size="14" text-anchor="middle" fill="#48586c">0.5</text>');
+ parts.push('<text x="'+(x0+w)+'" y="'+(y0+21)+'" font-size="14" text-anchor="middle" fill="#48586c">1</text>');
+ parts.push('<text x="63" y="27" font-size="17" fill="#1157ae">y = ln(1+x)</text>');
+ parts.push('<text x="597" y="204" font-size="15" fill="#48586c">x</text>');
+ svg.innerHTML=parts.join("");
+ var area=sum/n,approx=Math.exp(area),target=4/Math.E;
+ document.getElementById("q003nv").textContent=n;
+ out.textContent="矩形面积和 ≈ "+area.toFixed(5)+"；原题近似值 ≈ "+approx.toFixed(5)+"；最终极限 4/e ≈ "+target.toFixed(5);
+}
+function q003OpenFromHash(){
+ if(location.hash==="#q003"){
+   document.getElementById("search").value="";
+   onlyReview=false;
+   render();
+   var card=document.getElementById("q003");
+   if(card){card.querySelector(".detail").classList.add("open");card.querySelector(".exp").textContent="收起";q003Draw();setTimeout(function(){card.scrollIntoView({behavior:"smooth",block:"start"});},100);}
+ }
+}
+
+updateStats();render();newQuiz();q003OpenFromHash();window.addEventListener('hashchange',q003OpenFromHash);
 </script>
 </body>
 </html>
