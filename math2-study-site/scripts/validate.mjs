@@ -24,7 +24,7 @@ assert(js.includes("function renderPoints()"),"Concept index renderer missing");
 // Regression: K003's interactive coefficient switch uses querySelectorAll, not querySelector.
 // In 2026-10-09, using single querySelector then .forEach crashed the widget,
 // and a broad catch misleadingly erased the entire lecture with "专题加载失败".
-assert(js.includes('const buttons=$("[data-root]",lab)'),
+assert(js.includes('const buttons=$$("[data-root]",lab)'),
   "K003 decomp widget must select all buttons as an array");
 assert(!js.includes('const buttons=$("[data-root]",lab)'),
   "Regression: single button used as array in K003 interaction");
