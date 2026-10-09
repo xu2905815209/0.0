@@ -166,3 +166,52 @@ main{padding-bottom:70px}
  .value-grid{grid-template-columns:repeat(2,1fr)}
  .metric{padding-right:12px}
 }
+
+
+/* Paired representative problems and core exam concepts */
+#points-section{scroll-margin-top:96px}
+.point-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:30px}
+.point-card{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;text-align:left;transition:transform .15s,border-color .15s;min-height:157px}
+.point-card:hover{border-color:#a5c6e6;transform:translateY(-2px)}
+.point-card .point-kicker{font-size:11px;font-weight:850;letter-spacing:.7px;text-transform:uppercase;color:var(--teal)}
+.point-card strong{font-size:18px;line-height:1.45;color:var(--ink)}
+.point-card .point-hint{color:var(--sub);line-height:1.6;font-size:13px}
+.point-card .point-link{color:var(--blue);margin-top:auto;font-weight:750;font-size:12px;padding-top:9px}
+.card-problem{margin:18px 0 0;padding:15px;border-radius:13px;border:1px solid #e0eaf5;background:#f7faff}
+.card-problem .problem-badge{display:inline-block;color:var(--blue);letter-spacing:.7px;font-size:11px;font-weight:900}
+.card-problem-desc{color:#324b63;font-size:13.5px;line-height:1.8;margin:10px 0}
+.card-math{margin-top:12px;background:#fff;border-radius:10px;border:1px solid #e0e9f3;padding:11px 8px;overflow:auto;text-align:center}
+.card-math math{font-size:clamp(16px,1.9vw,22px)}
+.card h3{margin:12px 0 10px}
+.card .card-concepts{margin:13px 0 0}
+.card .card-concepts h4{font-size:12px;letter-spacing:.6px;color:var(--sub);margin:0 0 9px}
+.card .card-concepts span{display:inline-block;font-size:12px;font-weight:680;background:#e9f7f3;color:#107364;border-radius:6px;margin:0 6px 6px 0;padding:7px 9px}
+.problem-section{padding:24px 26px!important;border-radius:16px;background:#f8fbff;border:1px solid #cddff2!important}
+.prose .problem-section+section{margin-top:32px;padding-top:28px}
+.problem-section .eyebrow{color:var(--blue)}
+.problem-section h2{margin-top:11px!important}
+.problem-section .problem-statement{background:#fff;border:1px solid #e1e9f1;border-radius:12px;padding:17px 20px;margin:13px 0 19px}
+.problem-section .problem-statement p{margin:5px 0 13px}
+.problem-conditions{font-size:13px!important;color:var(--sub)!important}
+.exam-point-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.exam-point-list span{display:inline-block;background:#e6f6ef;color:#0a765f;border:1px solid #cae8db;border-radius:8px;padding:8px 12px;font-weight:740;font-size:13px}
+.hint-accordion{background:#fff;border:1px dashed #96b8d5;border-radius:12px;padding:14px 17px;margin-top:17px}
+.hint-accordion summary{color:var(--blue);font-weight:750;cursor:pointer}
+.hint-accordion p{margin-bottom:0}
+.signstrip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
+.signstrip>div{display:flex;align-items:center;justify-content:center;gap:5px;flex-direction:column;border:1px solid #e0e7ef;padding:12px 8px;border-radius:9px;background:#f6f9fc;text-align:center}
+.signstrip>div:nth-child(1),.signstrip>div:nth-child(3){background:#fff6ed}
+.signstrip>div:nth-child(2){background:#ebf8f1}
+.signstrip span{font-weight:750;font-size:12px;color:#52657b}
+.signstrip strong{font-size:19px}
+.signstrip em{font-style:normal;color:var(--sub);font-size:13px}
+@media(max-width:920px){.point-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:590px){
+  .topnav{gap:2px}.topnav button{font-size:11.5px;padding:8px 7px}
+  .point-grid{grid-template-columns:1fr;gap:10px}
+  .point-card{min-height:auto;padding:16px}
+  .problem-section{padding:16px!important}
+  .problem-section .problem-statement{padding:13px}
+  .signstrip>div{padding:10px 4px}
+  .signstrip strong{font-size:16px}
+}
