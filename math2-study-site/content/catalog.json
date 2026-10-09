@@ -1,7 +1,7 @@
 [
   {
     "id": "k001",
-    "number": "专题 01",
+    "number": "精选题 01",
     "chapter": "导数与定积分",
     "title": "导数图像与原函数增量",
     "summary": "如何从 f′ 的正负与面积，判断 f 的增减、函数值和最值；以及什么时候改用拉格朗日中值定理。",
@@ -21,11 +21,29 @@
       "极值",
       "中值定理",
       "最值"
+    ],
+    "problemTitle": "根据导数图像求原函数的最值",
+    "problem": "设 f′(x) 在 [0,4] 上连续，曲线 y=f′(x) 在 (0,1)、(1,3)、(3,4) 分别位于 x 轴下方、上方、下方，且与 x 轴围成的面积分别为 3、4、2。已知 f(0)=1，求 f(x) 在 [0,4] 上的最大值与最小值。",
+    "problemMath": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mi>f</mi><mo>(</mo><mn>0</mn><mo>)</mo><mo>=</mo><mn>1</mn><mspace width=\"1em\"/><msub><mi>S</mi><mn>1</mn></msub><mo>=</mo><mn>3</mn><mo>,</mo><mspace width=\".6em\"/><msub><mi>S</mi><mn>2</mn></msub><mo>=</mo><mn>4</mn><mo>,</mo><mspace width=\".6em\"/><msub><mi>S</mi><mn>3</mn></msub><mo>=</mo><mn>2</mn></math>",
+    "answer": "最大值 2；最小值 −2",
+    "points": [
+      {
+        "name": "牛顿—莱布尼茨公式",
+        "hint": "从导数积分求函数增量"
+      },
+      {
+        "name": "定积分的带符号面积",
+        "hint": "轴上正、轴下负"
+      },
+      {
+        "name": "导数符号与区间最值",
+        "hint": "结合单调性并比较端点"
+      }
     ]
   },
   {
     "id": "k002",
-    "number": "专题 02",
+    "number": "精选题 02",
     "chapter": "高阶导数",
     "title": "分式函数的 n 阶导数",
     "summary": "把有理分式拆成负幂，建立高阶导速算规律。理解符号、阶乘和分母次数，避免考试现场硬推。",
@@ -46,6 +64,24 @@
       "负幂",
       "莱布尼茨",
       "链式法则"
+    ],
+    "problemTitle": "有理分式函数的 n 阶导数",
+    "problem": "设 y=1/[x(1−x)]（x≠0,1），求 y 的 n 阶导数，其中 n 为正整数。",
+    "problemMath": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mi>y</mi><mo>=</mo><mfrac><mn>1</mn><mrow><mi>x</mi><mo>(</mo><mn>1</mn><mo>−</mo><mi>x</mi><mo>)</mo></mrow></mfrac><mspace width=\"1.2em\"/><mfrac><msup><mi>d</mi><mi>n</mi></msup><mrow><mi>d</mi><msup><mi>x</mi><mi>n</mi></msup></mrow></mfrac><mi>y</mi><mo>=</mo><mo>?</mo></math>",
+    "answer": "先拆成 1/x + 1/(1−x)，分别套高阶导模板后相加",
+    "points": [
+      {
+        "name": "部分分式分解",
+        "hint": "拆复杂分式为基本模板"
+      },
+      {
+        "name": "幂函数的高阶导",
+        "hint": "(−1)ⁿ、n!、分母指数"
+      },
+      {
+        "name": "复合函数链式法则",
+        "hint": "辨认 1−x 求导的符号"
+      }
     ]
   }
 ]
