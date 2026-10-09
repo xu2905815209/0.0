@@ -83,5 +83,49 @@
         "hint": "辨认 1−x 求导的符号"
       }
     ]
+  },
+  {
+    "id": "k003",
+    "number": "精选题 03",
+    "chapter": "不定积分",
+    "title": "有理函数不定积分：因式分解与部分分式",
+    "summary": "分母能分成两个一次因子时，如何先设 A、B、巧用特殊值求系数，再变成对数型积分，最后求导验算。",
+    "tags": [
+      "部分分式分解",
+      "对数型不定积分",
+      "积分线性性质"
+    ],
+    "trigger": "积分中出现 (at+b)/(t²−1) 等可分解的真分式",
+    "keywords": [
+      "不定积分",
+      "积分",
+      "有理函数",
+      "部分分式",
+      "平方差",
+      "因式分解",
+      "待定系数",
+      "对数",
+      "微分",
+      "凑微分",
+      "积分常数"
+    ],
+    "problemTitle": "因式分解后逐项积分",
+    "problem": "计算不定积分 ∫[(2−t)/(t²−1)−t]dt（t≠±1）。",
+    "problemMath": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mo>∫</mo><mo>(</mo><mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac><mo>−</mo><mi>t</mi><mo>)</mo><mi>d</mi><mi>t</mi><mo>=</mo><mo>?</mo></math>",
+    "answer": "(1/2)ln|t−1|−(3/2)ln|t+1|−t²/2+C（在不跨 t=±1 的区间上）",
+    "points": [
+      {
+        "name": "部分分式分解",
+        "hint": "不同一次因子，拆成 A/(t−1)+B/(t+1)"
+      },
+      {
+        "name": "对数型不定积分",
+        "hint": "∫1/(t−a)dt=ln|t−a|+C"
+      },
+      {
+        "name": "不定积分的线性性质",
+        "hint": "可以逐项拆开积分、把常数因子提出"
+      }
+    ]
   }
 ]
