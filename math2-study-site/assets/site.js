@@ -188,16 +188,23 @@
 
     const ticket=++pendingLesson;
     try {
-      const resp=await fetch("content/"+item.id+".html");
-      if(!resp.ok) throw new Error("HTTP "+resp.status);
+      // Absolute URLs resolved from the site root survive query strings and hash routes.
+      const url=new URL("content/"+item.id+".html", document.baseURI);
+      const resp=await fetch(url.toString());
+      if(!resp.ok) throw new Error("HTTP "+resp.status+" · "+url.pathname);
       const data=await resp.text();
       if(ticket!==pendingLesson) return;
       $("#lesson-content").innerHTML=data;
-      attachLessonWidgets();
     } catch (e) {
       if(ticket!==pendingLesson)return;
-      $("#lesson-content").innerHTML='<div class="callout warning">专题加载失败，请刷新页面重试。若仍失败，可能正在发布新版。</div>';
+      console.error("Lesson file load failed:",item.id,e);
+      $("#lesson-content").innerHTML=
+        '<div class="callout warning"><strong>讲解文件暂时无法读取。</strong>错误：'+safe(e.message||String(e))+
+        '。你可以稍后重试，或<a href="content/'+encodeURIComponent(item.id)+'.html" target="_blank" rel="noopener noreferrer">直接查看讲解文件</a>。</div>';
+      return;
     }
+    // Widget exceptions must NEVER replace an already-loaded lesson with "load failed".
+    attachLessonWidgets();
   }
 
   function renderRoute() {
@@ -208,10 +215,22 @@
   }
 
   function attachLessonWidgets() {
-    setupQuiz($("#lesson-content"));
-    setupAreaButtons();
-    setupDerivativeLab();
-    setupDecompLab();
+    const widgets=[
+      ["自测练习",()=>setupQuiz($("#lesson-content"))],
+      ["图像交互",setupAreaButtons],
+      ["高阶导互动",setupDerivativeLab],
+      ["部分分式互动",setupDecompLab]
+    ];
+    for(const [name,init] of widgets){
+      try { init(); }
+      catch(e) {
+        console.error("Interactive widget failed: "+name,e);
+        const note=document.createElement("div");
+        note.className="callout warning";
+        note.textContent="讲解内容已正常加载，但「"+name+"」功能暂不可用。";
+        $("#lesson-content").prepend(note);
+      }
+    }
   }
 
   function setupQuiz(scope) {
@@ -289,7 +308,7 @@
   function setupDecompLab(){
     const lab=$("[data-decomp-lab]",$("#lesson-content"));
     if(!lab)return;
-    const buttons=$("[data-root]",lab),box=$("#decomp-result");
+    const buttons=$$("[data-root]",lab),box=$("#decomp-result");
     if(!box)return;
     function choose(root){
       buttons.forEach(b=>b.classList.toggle("active",b.dataset.root===root));
