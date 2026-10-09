@@ -211,6 +211,7 @@
     setupQuiz($("#lesson-content"));
     setupAreaButtons();
     setupDerivativeLab();
+    setupDecompLab();
   }
 
   function setupQuiz(scope) {
@@ -283,6 +284,29 @@
       draw();
     }));
     draw();
+  }
+
+  function setupDecompLab(){
+    const lab=$("[data-decomp-lab]",$("#lesson-content"));
+    if(!lab)return;
+    const buttons=$("[data-root]",lab),box=$("#decomp-result");
+    if(!box)return;
+    function choose(root){
+      buttons.forEach(b=>b.classList.toggle("active",b.dataset.root===root));
+      if(root==="one"){
+        box.innerHTML='<div class="math"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">'+
+          '<mn>2</mn><mo>=</mo><mn>2</mn><mi>A</mi><mo>+</mo><mn>0</mn><mi>B</mi>'+
+          '<mspace width="1em"/><mo>⟹</mo><mspace width=".5em"/><mi>A</mi><mo>=</mo><mn>1</mn>'+
+          '</math></div><p>t=1 时，t−1=0，B 项消失，所以直接得到 A=1。</p>';
+      }else{
+        box.innerHTML='<div class="math"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block">'+
+          '<mn>2</mn><mo>=</mo><mn>0</mn><mi>A</mi><mo>−</mo><mn>2</mn><mi>B</mi>'+
+          '<mspace width="1em"/><mo>⟹</mo><mspace width=".5em"/><mi>B</mi><mo>=</mo><mo>−</mo><mn>1</mn>'+
+          '</math></div><p>t=−1 时，t+1=0，A 项消失，所以直接得到 B=−1。</p>';
+      }
+    }
+    buttons.forEach(b=>b.addEventListener("click",()=>choose(b.dataset.root)));
+    choose("one");
   }
 
   function newReviewQuestion() {
