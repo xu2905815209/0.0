@@ -1,7 +1,7 @@
 /**
  * 考研数学二精选课程站
  * 内容：content/catalog.json + content/kNNN.html
- * 规则：先读 CLAUDE.md 与 PROJECT_STATE.md；不自动收录每条聊天提问。
+ * 规则：先读 CLAUDE.md 与 PROJECT_STATE.md；网站只收录经筛选的代表题及对应核心考点。
  */
 (() => {
   "use strict";
@@ -70,27 +70,62 @@
 
   function renderCatalog() {
     const query=($("#search").value||"").trim().toLowerCase();
-    const list=catalog.filter(item => {
-      const terms=[item.title,item.summary,item.chapter,...item.tags,...(item.keywords||[])].join(" ").toLowerCase();
+    const list=catalog.filter(item=>{
+      const pointNames=(item.points||[]).map(point=>point.name+" "+point.hint).join(" ");
+      const terms=[
+        item.title,item.problemTitle,item.problem,item.summary,item.chapter,
+        ...item.tags,...(item.keywords||[]),pointNames
+      ].join(" ").toLowerCase();
       return (!query || terms.includes(query)) && (!onlyPending || !mastery[item.id]);
     });
     $("#empty-state").hidden=list.length>0;
-    $("#catalog").innerHTML=list.map(item => {
+    $("#catalog").innerHTML=list.map(item=>{
       const done=!!mastery[item.id];
-      return '<article class="card">'+
+      const chips=(item.points||[]).map(point=>"<span>"+safe(point.name)+"</span>").join("");
+      const math=(item.problemMath||"");
+      return '<article class="card" data-topic="'+safe(item.id)+'">'+
         '<div class="card-meta"><span class="chapter">'+safe(item.chapter)+'</span><span>'+safe(item.number)+'</span></div>'+
-        '<h3>'+safe(item.title)+'</h3><p>'+safe(item.summary)+'</p>'+
-        '<div class="keywords">'+item.tags.map(t=>'<span>'+safe(t)+'</span>').join("")+'</div>'+
+        '<h3>'+safe(item.problemTitle||item.title)+'</h3>'+
+        '<p>典型题型 · '+safe(item.title)+'</p>'+
+        '<div class="card-problem">'+
+          '<div class="problem-badge">REPRESENTATIVE PROBLEM · 代表题</div>'+
+          '<p class="card-problem-desc">'+safe(item.problem)+'</p>'+
+          (math?'<div class="card-math">'+math+'</div>':"")+
+        '</div>'+
+        '<div class="card-concepts"><h4>本题对应考点</h4>'+chips+'</div>'+
         '<div class="card-bottom">'+
-        '<button type="button" class="btn primary" data-open="'+safe(item.id)+'">进入专题 →</button>'+
+        '<button type="button" class="btn primary" data-open="'+safe(item.id)+'">先做题 · 看解析 →</button>'+
         '<button type="button" class="btn status" data-done="'+done+'" data-toggle="'+safe(item.id)+'">'+(done?"✓ 已掌握":"○ 未掌握")+'</button>'+
         '</div></article>';
     }).join("");
   }
 
+  function renderPoints() {
+    const index=new Map();
+    catalog.forEach(item=>{
+      (item.points||[]).forEach(p=>{
+        const name=typeof p==="string"?p:p.name;
+        const hint=typeof p==="string"?"":p.hint;
+        if(!index.has(name))index.set(name,{name,hint,topics:[]});
+        index.get(name).topics.push(item);
+      });
+    });
+    $("#point-index").innerHTML=[...index.values()].map(p=>{
+      const item=p.topics[0];
+      const ids=p.topics.map(t=>t.number).join(" · ");
+      const done=!!mastery[item.id];
+      return '<button type="button" class="point-card" data-open="'+safe(item.id)+'">'+
+        '<span class="point-kicker">核心考点 '+(done?' · 所属题已掌握':'')+'</span>'+
+        '<strong>'+safe(p.name)+'</strong>'+
+        '<span class="point-hint">'+safe(p.hint)+'</span>'+
+        '<span class="point-link">对应：'+safe(item.problemTitle||item.title)+' ↗</span>'+
+        '</button>';
+    }).join("");
+  }
+
   function toggleMastery(id) {
     if (!catalog.some(x=>x.id===id)) return;
-    mastery[id]=!mastery[id];saveMastery();updateProgress();renderCatalog();
+    mastery[id]=!mastery[id];saveMastery();updateProgress();renderCatalog();renderPoints();
     const active=idFromHash();
     if(active===id) updateLessonButton(id);
   }
@@ -117,12 +152,15 @@
     pendingLesson++;
     $("#home-view").hidden=false;
     $("#lesson-view").hidden=true;
-    $("#nav-courses").classList.toggle("active",section!=="review");
+    $("#nav-courses").classList.toggle("active",section!=="review"&&section!=="points");
+    $("#nav-points").classList.toggle("active",section==="points");
     $("#nav-review").classList.toggle("active",section==="review");
     if(section==="review") {
       setTimeout(()=>$("#review-section").scrollIntoView({behavior:"smooth",block:"start"}),30);
     } else if (section==="catalog") {
       setTimeout(()=>$("#catalog-section").scrollIntoView({behavior:"smooth",block:"start"}),30);
+    } else if(section==="points") {
+      setTimeout(()=>$("#points-section").scrollIntoView({behavior:"smooth",block:"start"}),30);
     } else {
       window.scrollTo({top:0,behavior:"smooth"});
     }
@@ -137,6 +175,7 @@
     $("#home-view").hidden=true;
     $("#lesson-view").hidden=false;
     $("#nav-courses").classList.remove("active");
+    $("#nav-points").classList.remove("active");
     $("#nav-review").classList.remove("active");
     $("#lesson-number").textContent=item.number;
     $("#lesson-title").textContent=item.title;
@@ -269,6 +308,7 @@
   function registerEvents() {
     $("#brand-home").addEventListener("click",()=>goHome());
     $("#nav-courses").addEventListener("click",()=>goHome("catalog"));
+    $("#nav-points").addEventListener("click",()=>goHome("points"));
     $("#nav-review").addEventListener("click",()=>goHome("review"));
     $("#back-home").addEventListener("click",()=>goHome("catalog"));
     $("#search").addEventListener("input",renderCatalog);
@@ -286,6 +326,10 @@
       const toggle=e.target.closest("[data-toggle]");
       if(toggle) toggleMastery(toggle.dataset.toggle);
     });
+    $("#point-index").addEventListener("click",e=>{
+      const open=e.target.closest("[data-open]");
+      if(open)openLesson(open.dataset.open);
+    });
     window.addEventListener("hashchange",renderRoute);
     window.addEventListener("popstate",renderRoute);
   }
@@ -301,6 +345,7 @@
       saveMastery();
       updateProgress();
       renderCatalog();
+      renderPoints();
       newReviewQuestion();
       renderRoute();
     }catch(e){
