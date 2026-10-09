@@ -1,0 +1,201 @@
+<article class="prose">
+  <section class="problem-section" data-role="representative-problem">
+    <span class="eyebrow"><span class="dot"></span>精选代表题 · 不定积分基础母题</span>
+    <h2>分母能够因式分解的有理函数积分</h2>
+    <div class="problem-statement">
+      <p>计算下列不定积分。先自己判断：<strong>换元法、分部积分，还是部分分式？</strong></p>
+      <div class="math">
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+          <mo>∫</mo><mo>[</mo>
+          <mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac>
+          <mo>−</mo><mi>t</mi><mo>]</mo><mi>d</mi><mi>t</mi>
+        </math>
+      </div>
+      <p class="problem-conditions">积分区间不能跨越 <strong>t = −1</strong> 或 <strong>t = 1</strong>，因为这两点处分母为零。</p>
+    </div>
+    <h3>本题对应考点</h3>
+    <div class="exam-point-list">
+      <span>部分分式分解</span>
+      <span>对数型不定积分</span>
+      <span>不定积分的线性性质</span>
+    </div>
+    <details class="hint-accordion">
+      <summary>第一眼没思路？先打开一条提示</summary>
+      <p>观察分母：<strong>t²−1 = (t−1)(t+1)</strong>。两个不同的一次因子意味着：可以尝试把分式拆成两个“常数 ÷ 一次式”，而它们的积分就是对数。</p>
+    </details>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>01 / 考场选法</span>
+    <h2>为什么首先想到“拆分式”，而不是换元？</h2>
+    <p>这道题其实有两部分：一个<strong>有理分式</strong>和一个<strong>−t</strong>。后者很好积分，真正的难点只有左边那一块。</p>
+
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>∫</mo><mo>(</mo><mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac><mo>−</mo><mi>t</mi><mo>)</mo><mi>d</mi><mi>t</mi>
+        <mo>=</mo>
+        <mo>∫</mo><mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac><mi>d</mi><mi>t</mi>
+        <mo>−</mo><mo>∫</mo><mi>t</mi><mi>d</mi><mi>t</mi>
+      </math>
+    </div>
+    <div class="callout blue"><strong>看题信号：</strong>分母是可因式分解的多项式，分子次数较低，又要做不定积分 → <strong>优先尝试部分分式</strong>。如果分子刚好是分母导数的常数倍，才优先考虑直接凑微分。</div>
+    <p>分母的导数是 <strong>2t</strong>，而分子是 <strong>2−t</strong>，两者并不是常数倍；因此直接令 u=t²−1，不能一步将问题全部解决。</p>
+    <div class="callout">先记两个小模板：对 t−1 和 t+1 求倒数积分，都会得到<strong>自然对数</strong>。因此只要把原分式拆成这样的形式，题就容易了。</div>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>∫</mo><mfrac><mn>1</mn><mrow><mi>t</mi><mo>−</mo><mi>a</mi></mrow></mfrac><mi>d</mi><mi>t</mi>
+        <mo>=</mo><mi>ln</mi><mo>|</mo><mi>t</mi><mo>−</mo><mi>a</mi><mo>|</mo><mo>+</mo><mi>C</mi>
+      </math>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>02 / 核心变形</span>
+    <h2>设 A、B 拆开，再用 t=1 和 t=−1 求系数</h2>
+    <p>先将平方差因式分解，再设：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn>
+        <mo>=</mo><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+      </math>
+    </div>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+        <mo>=</mo>
+        <mfrac><mi>A</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></mfrac>
+        <mo>+</mo>
+        <mfrac><mi>B</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></mfrac>
+      </math>
+    </div>
+    <p>两边同时乘以 <strong>(t−1)(t+1)</strong>，分母就被消去，得到：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mn>2</mn><mo>−</mo><mi>t</mi><mo>=</mo><mi>A</mi><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo>
+        <mo>+</mo><mi>B</mi><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo>
+      </math>
+    </div>
+    <p>这条等式对所有 <strong>t</strong> 都成立。所以我们可以专门代入使某一项消失的数，而不是老老实实解联立方程。</p>
+
+    <div class="decomp-lab" data-decomp-lab>
+      <div class="decomp-lab-label">动手试一试：哪个 t 能让哪一项消失？</div>
+      <div class="segment-tabs" role="group" aria-label="代入特殊值求部分分式系数">
+        <button type="button" data-root="one" class="active">代入 t=1</button>
+        <button type="button" data-root="minus-one">代入 t=−1</button>
+      </div>
+      <div id="decomp-result" class="decomp-result" aria-live="polite">
+        <div class="math">
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+            <mn>1</mn><mo>=</mo><mn>2</mn><mi>A</mi><mo>+</mo><mn>0</mn><mi>B</mi>
+            <mspace width="1em"/><mo>⟹</mo><mspace width=".5em"/>
+            <mi>A</mi><mo>=</mo><mfrac><mn>1</mn><mn>2</mn></mfrac>
+          </math>
+        </div>
+        <p>因为 t−1=0，所以 B 项整项消失，只剩 A。</p>
+      </div>
+    </div>
+
+    <div class="callout blue"><strong>这不是胡乱选值。</strong>当分母已经分解成不同的一次因子时，代入各因子的零点，就能让另一项自动消失。这是求部分分式系数很快的方法。</div>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac>
+        <mo>=</mo>
+        <mfrac><mn>1</mn><mrow><mn>2</mn><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+        <mo>−</mo>
+        <mfrac><mn>3</mn><mrow><mn>2</mn><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+      </math>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>03 / 分别积分</span>
+    <h2>拆完以后，只剩两种最基础的积分</h2>
+    <p>把原式改写成三个简单项的和，利用<strong>不定积分的线性性质</strong>逐项积分：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>∫</mo><mo>(</mo>
+        <mfrac><mn>1</mn><mrow><mn>2</mn><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+        <mo>−</mo><mfrac><mn>3</mn><mrow><mn>2</mn><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+        <mo>−</mo><mi>t</mi><mo>)</mo><mi>d</mi><mi>t</mi>
+      </math>
+    </div>
+    <div class="math result-math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mrow>
+          <mfrac><mn>1</mn><mn>2</mn></mfrac><mi>ln</mi><mo>|</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>|</mo>
+          <mo>−</mo><mfrac><mn>3</mn><mn>2</mn></mfrac><mi>ln</mi><mo>|</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>|</mo>
+          <mo>−</mo><mfrac><msup><mi>t</mi><mn>2</mn></msup><mn>2</mn></mfrac><mo>+</mo><mi>C</mi>
+        </mrow>
+      </math>
+    </div>
+    <div class="callout warning"><strong>最常见的丢分点：</strong>对数的绝对值不能漏；分开的 <strong>−t</strong> 积分结果是 <strong>−t²/2</strong>，而不是 −t。</div>
+    <h3>为什么对数一定有绝对值？</h3>
+    <p>因为 <strong>ln|t−1|</strong> 在 t&lt;1 和 t&gt;1 两侧都有意义，且导数在各自区间上都等于 1/(t−1)。原积分在 <strong>t=−1、t=1</strong> 处无定义，因此不定积分只需在不跨过这些点的区间里成立。</p>
+
+    <figure class="vis-frame">
+      <svg role="img" aria-label="t轴上负一和一是不可跨越的间断点，定义区间分成三段" viewBox="0 0 800 160">
+        <rect x="0" y="0" width="800" height="160" fill="#fff"/>
+        <line x1="58" y1="90" x2="741" y2="90" stroke="#5c7084" stroke-width="3" stroke-linecap="round"/>
+        <path d="M58 90 l12 -7 m-12 7 l12 7 M741 90 l-12 -7 m12 7 l-12 7" fill="none" stroke="#5c7084" stroke-width="2"/>
+        <line x1="112" y1="90" x2="331" y2="90" stroke="#0c9382" stroke-width="9" stroke-linecap="round"/>
+        <line x1="340" y1="90" x2="462" y2="90" stroke="#2670b6" stroke-width="9" stroke-linecap="round"/>
+        <line x1="471" y1="90" x2="685" y2="90" stroke="#0c9382" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="335" cy="90" r="9" fill="#fff" stroke="#c05b4a" stroke-width="3"/>
+        <circle cx="467" cy="90" r="9" fill="#fff" stroke="#c05b4a" stroke-width="3"/>
+        <text x="335" y="121" fill="#a14638" text-anchor="middle" font-size="21" font-weight="700">−1</text>
+        <text x="467" y="121" fill="#a14638" text-anchor="middle" font-size="21" font-weight="700">1</text>
+        <text x="205" y="63" fill="#0a8073" text-anchor="middle" font-size="18">区间①</text>
+        <text x="401" y="63" fill="#2268a7" text-anchor="middle" font-size="18">区间②</text>
+        <text x="580" y="63" fill="#0a8073" text-anchor="middle" font-size="18">区间③</text>
+        <text x="401" y="146" fill="#5b7188" text-anchor="middle" font-size="16">t = −1、1 处没有定义；积分常数可按区间分别取值</text>
+      </svg>
+      <figcaption>含对数的原函数不是“跨过分母零点也有效”的整条曲线。</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>04 / 检查与迁移</span>
+    <h2>求完导验算：最可靠的自检方法</h2>
+    <p>把得到的原函数求一次导数：</p>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msup><mi>F</mi><mo>′</mo></msup><mo>(</mo><mi>t</mi><mo>)</mo><mo>=</mo>
+        <mfrac><mn>1</mn><mrow><mn>2</mn><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow></mfrac>
+        <mo>−</mo><mfrac><mn>3</mn><mrow><mn>2</mn><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo></mrow></mfrac><mo>−</mo><mi>t</mi>
+      </math>
+    </div>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>=</mo><mfrac>
+          <mrow><mo>(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo>)</mo><mo>−</mo><mn>3</mn><mo>(</mo><mi>t</mi><mo>−</mo><mn>1</mn><mo>)</mo></mrow>
+          <mrow><mn>2</mn><mo>(</mo><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn><mo>)</mo></mrow>
+        </mfrac><mo>−</mo><mi>t</mi>
+        <mo>=</mo><mfrac><mrow><mn>2</mn><mo>−</mo><mi>t</mi></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac><mo>−</mo><mi>t</mi>
+      </math>
+    </div>
+    <div class="callout"><strong>考场最重要的不是背本题的答案，而是这条路线：</strong>多项式部分先分开 → 分母因式分解 → 设 A、B → 选零点求系数 → 积成对数 → 求导验算。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>快速自测</span>
+    <h2>会做本题，不等于记住了套路</h2>
+    <div class="quiz" data-quiz-correct="1" data-quiz-explain="在 2−t=A(t+1)+B(t−1) 里，代 t=1 得 A=1/2；代 t=−1 得 B=−3/2。">
+      <h3>① 把 (2−t)/(t²−1) 拆项，A、B 应取多少？</h3>
+      <div class="options">
+        <button type="button">A = −1/2，B = 3/2</button>
+        <button type="button">A = 1/2，B = −3/2</button>
+        <button type="button">A = 3/2，B = −1/2</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">选一项，确认系数符号没有算反。</div>
+    </div>
+    <div class="quiz" data-quiz-correct="2" data-quiz-explain="分母能拆为不同一次因子，分子次数较低：优先部分分式。分子若恰是分母导数的常数倍，才优先直接凑微分。">
+      <h3>② 另一道题：遇到 (3t+4)/(t²−4) 的不定积分，第一步更适合想什么？</h3>
+      <div class="options">
+        <button type="button">直接套分部积分</button>
+        <button type="button">先写成 sin 或 cos</button>
+        <button type="button">分母拆 (t−2)(t+2)，再做部分分式</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">这题用于检查：换了系数，你还会不会识别题型。</div>
+    </div>
+  </section>
+</article>
