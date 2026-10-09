@@ -113,7 +113,7 @@
       "积分常数"
     ],
     "problemTitle": "先整式除法，再分解积分",
-    "problem": "求不定积分 ∫[2t²/(t²−1)−t]dt（t≠±1）。",
+    "problem": "设 t 为实数且 t≠±1，计算不定积分 ∫[2t²/(t²−1)−t]dt。写出完整原函数，并指出被积函数在哪些区间上有定义。",
     "problemMath": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><mo>∫</mo><mo>(</mo><mfrac><mrow><mn>2</mn><msup><mi>t</mi><mn>2</mn></msup></mrow><mrow><msup><mi>t</mi><mn>2</mn></msup><mo>−</mo><mn>1</mn></mrow></mfrac><mo>−</mo><mi>t</mi><mo>)</mo><mi>d</mi><mi>t</mi><mo>=</mo><mo>?</mo></math>",
     "answer": "2t−t²/2+ln|t−1|−ln|t+1|+C（定义区间不能跨过 t=±1）",
     "points": [
