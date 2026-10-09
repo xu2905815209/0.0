@@ -99,7 +99,7 @@ async function checkLesson(id){
 
   vm.runInNewContext(script,context,{filename:"assets/site.js"});
   await new Promise(resolve=>setTimeout(resolve,60));
-  assert(renderedLesson.includes('data-role="representative-problem"'),id+": lesson did not render");
+  assert(renderedLesson.includes('data-role="representative-problem"'),id+": lesson did not render; fragment prefix="+renderedLesson.slice(0,250)+"; errors="+errors.join(" | ")+"; catalog box="+getNode("#catalog").innerHTML.slice(0,250));
   assert(!renderedLesson.includes("讲解文件暂时无法读取"),id+": render failed");
   assert.equal(errors.length,0,id+": JavaScript widget error: "+errors.join(" | "));
 
