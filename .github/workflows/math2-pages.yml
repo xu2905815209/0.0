@@ -31,6 +31,8 @@ jobs:
           node --check math2-study-site/assets/site.js
           node --check math2-study-site/scripts/validate.mjs
           node math2-study-site/scripts/validate.mjs
+          node --check math2-study-site/scripts/interaction.test.mjs
+          node math2-study-site/scripts/interaction.test.mjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload study site
@@ -40,3 +42,10 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke-test published HTML and JS
+        run: |
+          BASE="${{ steps.deployment.outputs.page_url }}"
+          for FILE in content/catalog.json content/k001.html content/k002.html content/k003.html assets/site.js; do
+            echo "Checking ${BASE}${FILE}"
+            curl --fail --location --silent --show-error --retry 5 --retry-delay 4 --retry-all-errors "${BASE}${FILE}" -o /dev/null
+          done
