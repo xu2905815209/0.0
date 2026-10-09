@@ -28,6 +28,8 @@ class Element {
       contains(){return false;}
     };
   }
+  querySelector(){return null;}
+  querySelectorAll(){return [];}
   addEventListener(event,fn){(this.listeners[event]??=[]).push(fn);}
   click(){for(const fn of this.listeners.click??[])fn({currentTarget:this,target:this});}
   scrollIntoView(){}
@@ -47,8 +49,11 @@ async function checkLesson(id){
   ];
   const lab=new Element();
   const output=new Element();
+  lab.querySelectorAll=(selector)=>selector==="[data-root]"?rootButtons:[];
+
   let renderedLesson="";
   const lessonContent=getNode("#lesson-content");
+  lessonContent.querySelector=selector=>selector==="[data-decomp-lab]"&&renderedLesson.includes("data-decomp-lab")?lab:null;
   Object.defineProperty(lessonContent,"innerHTML",{
     get(){return renderedLesson;},
     set(value){renderedLesson=value;}
