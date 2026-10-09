@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="theme-color" content="#174e9e"/>
-  <meta name="description" content="考研数学二精选考点：只整理值得反复复习、可以迁移解题的核心方法。"/>
+  <meta name="description" content="考研数学二精选题目与核心考点：每道代表题都有对应考点、完整解法与交互复习。"/>
   <title>数二精华课｜考研数学二</title>
   <link rel="stylesheet" href="assets/styles.css"/>
 </head>
@@ -16,7 +16,8 @@
         <span>数二精华课<small>MASTER THE METHOD</small></span>
       </button>
       <nav class="topnav" aria-label="站点导航">
-        <button type="button" id="nav-courses" class="active">精选专题</button>
+        <button type="button" id="nav-courses" class="active">精选题目</button>
+        <button type="button" id="nav-points">考点速查</button>
         <button type="button" id="nav-review">快速复习</button>
       </nav>
     </div>
@@ -26,23 +27,23 @@
     <div id="home-view">
       <section class="hero">
         <div>
-          <span class="eyebrow"><span class="dot"></span>考研数学二 · 个人精选笔记</span>
-          <h1>只留下真正<br/><em>值得反复看的考点。</em></h1>
-          <p>不把提问原样堆起来。每个专题都要解释：<strong>看到什么题面，为什么想到这个方法，怎么一步步推，哪里最容易失分</strong>。再配上简洁练习，方便考前快速检索。</p>
+          <span class="eyebrow"><span class="dot"></span>考研数学二 · 精选题目 × 核心考点</span>
+          <h1>一道好题，<br/><em>讲透一组考点。</em></h1>
+          <p>每个单元都有一套<strong>完整代表题 + 对应核心考点 + 标准解法 + 变式自测</strong>。不堆聊天记录，重点训练考试现场如何识别题型、选方法、避开易错点。</p>
         </div>
         <aside class="hero-brief" aria-label="专题筛选原则">
           <span class="eyebrow">内容入库标准</span>
-          <h3>从疑惑中，筛选真正有用的知识。</h3>
-          <p>只有能迁移到其他题目、符合数学二复习要求，并能做成清晰讲解和练习的知识点，才进入专题库。</p>
+          <h3>精选的是题，留下的是解题能力。</h3>
+          <p>典型题负责实战，考点负责归纳。每道题都与知识点相互关联，同类题合并，临时问题不收录。</p>
           <div class="steps">
-            <span>考点筛选</span><span>提炼母题</span><span>主动回忆</span>
+            <span>精选代表题</span><span>归纳核心考点</span><span>变式自测</span>
           </div>
         </aside>
       </section>
 
       <section class="dashboard" aria-label="学习进度">
         <div class="dashboard-main">
-          <div class="metric"><strong id="total-count">2</strong><span>精选专题</span></div>
+          <div class="metric"><strong id="total-count">2</strong><span>精选题目</span></div>
           <div class="metric"><strong id="done-count">0</strong><span>已掌握</span></div>
           <div class="metric"><strong id="review-count">2</strong><span>待复习</span></div>
         </div>
@@ -54,18 +55,25 @@
 
       <section id="catalog-section" aria-labelledby="catalog-title">
         <div class="section-header">
-          <div><h2 id="catalog-title">精选专题</h2><p>精简、成体系、可以多次复习，而不是聊天记录集合。</p></div>
+          <div><h2 id="catalog-title">精选题目</h2><p>看题干、辨考点、先尝试，再看推导。每一题对应可迁移的方法。</p></div>
           <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center"><input id="search" class="search" type="search" placeholder="搜索：导数、带符号面积、高阶导……" aria-label="搜索精选专题"/><button type="button" id="only-unlearned" class="btn soft">只看未掌握</button></div>
         </div>
         <div class="catalog" id="catalog" aria-live="polite"></div>
-        <div id="empty-state" class="focus" hidden><span class="focus-icon">?</span><div><h3>暂无匹配专题</h3><p>并不是每个问题都会变成课程；需要有明确考点价值才会新增。</p></div></div>
+        <div id="empty-state" class="focus" hidden><span class="focus-icon">?</span><div><h3>暂无匹配题目</h3><p>只有具有考研复习价值的典型题才会进入本题库。</p></div></div>
+      </section>
+
+      <section id="points-section" aria-labelledby="points-title">
+        <div class="section-header">
+          <div><h2 id="points-title">考点速查</h2><p>一个考点对应哪些典型题？点击考点，回到讲解与练习。</p></div>
+        </div>
+        <div class="point-grid" id="point-index"></div>
       </section>
 
       <div class="focus">
         <span class="focus-icon" aria-hidden="true">✓</span>
         <div>
-          <h3>这个站点不是“所有提问的档案馆”。</h3>
-          <p>估分、择校、一次性确认等问题在聊天中解决即可；有价值的思路会<strong>去掉提问语境，合并成通用专题</strong>。新问题也可能只是完善旧课程，而非新增一张卡片。</p>
+          <h3>题目与考点必须成对出现。</h3>
+          <p>挑选有代表性的题，提炼可迁移的考点，再用变式检验掌握。估分等一次性问题在聊天里解决；不为了增加题目数量而堆积内容。</p>
         </div>
       </div>
 
@@ -82,7 +90,7 @@
       <div class="lesson-main">
         <button type="button" id="back-home" class="back-btn">← 返回精选专题</button>
         <div class="lesson-heading">
-          <span class="eyebrow"><span class="dot"></span>数二精选专题 · <span id="lesson-number"></span></span>
+          <span class="eyebrow"><span class="dot"></span>精选题目 · <span id="lesson-number"></span></span>
           <h1 id="lesson-title"></h1>
           <p id="lesson-summary"></p>
           <div id="lesson-tags" class="lesson-tags"></div>
@@ -100,7 +108,7 @@
 
   <footer class="site-foot">
     <div class="shell">
-      考研数学二 · 精选考点库 · 先理解，再提炼，再复习
+      考研数学二 · 题目与考点双向关联 · 精练、精讲、精复习
       <div>学习状态暂保存在当前浏览器本地；不同设备之间尚未同步。</div>
     </div>
   </footer>
