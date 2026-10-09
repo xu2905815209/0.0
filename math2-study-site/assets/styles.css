@@ -215,3 +215,13 @@ main{padding-bottom:70px}
   .signstrip>div{padding:10px 4px}
   .signstrip strong{font-size:16px}
 }
+
+/* Interactive coefficient substitution in rational integration (K003) */
+.decomp-lab{border:1px solid #cddff0;background:#f3f8fe;border-radius:15px;padding:19px;margin:18px 0}
+.decomp-lab-label{color:#285271;line-height:1.7;margin-bottom:12px}
+.decomp-lab .segment-tabs{margin:10px 0}
+.decomp-result{background:#fff;border:1px solid #dce7f3;border-radius:12px;padding:10px 14px;min-height:105px}
+.decomp-result .math{margin:8px 0;padding:13px 8px}
+.decomp-result p{font-size:14px;color:#426078;margin:10px 5px}
+.result-math{background:#ecf8f2;border-color:#c3e4d0}
+.result-math math{color:#12624a}
