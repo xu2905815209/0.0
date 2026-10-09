@@ -14,12 +14,25 @@ const items=JSON.parse(read("content/catalog.json"));
 
 assert(Array.isArray(items)&&items.length>=1,"Catalog must be a nonempty array");
 assert.equal(new Set(items.map(x=>x.id)).size,items.length,"Duplicate topic ID");
-assert(index.includes('href="assets/styles.css"')&&index.includes('src="assets/site.js"'),"Asset paths missing from index");
+assert(index.includes('href="assets/styles.css"')&&index.includes('src="assets/site.js'),"Asset paths missing from index");
 assert(index.includes("数二精华课"),"Expected site identity is absent");
 assert(css.length>3000 && js.length>3000,"CSS/JS unexpectedly empty");
 assert(index.includes('id="points-section"')&&index.includes('id="point-index"'),"Core concept navigator missing");
 assert(index.includes("精选题目")&&index.includes("考点速查"),"Dual problem/concept navigation missing");
 assert(js.includes("function renderPoints()"),"Concept index renderer missing");
+
+// Regression: K003's interactive coefficient switch uses querySelectorAll, not querySelector.
+// In 2026-10-09, using single querySelector then .forEach crashed the widget,
+// and a broad catch misleadingly erased the entire lecture with "专题加载失败".
+assert(js.includes('const buttons=$("[data-root]",lab)'),
+  "K003 decomp widget must select all buttons as an array");
+assert(!js.includes('const buttons=$("[data-root]",lab)'),
+  "Regression: single button used as array in K003 interaction");
+assert(js.includes('Widget exceptions must NEVER replace'),
+  "Keep network-loading and widget-initialization failure handling separate");
+assert(!js.includes("专题加载失败，请刷新页面重试"),
+  "Do not report JavaScript widget errors as fetch failures");
+
 assert(!items.some(x=>x.id==="q003"||/考研多少分|这题多少分|估分/i.test(x.title)),"One-off exam-score question must not be published as a course");
 
 for (const t of items) {
@@ -47,4 +60,4 @@ for (const t of items) {
   assert(!/这道连乘、n 次根号极限，考研数二算几分/.test(lesson),t.id+": old one-off question leaked into lesson");
 }
 
-console.log("Validated "+items.length+" linked representative exam problems with core concepts, MathML, quizzes, and asset links.");
+console.log("Validated "+items.length+" linked representative exam problems with core concepts, MathML, quizzes, assets, and the K003 interaction regression.");
