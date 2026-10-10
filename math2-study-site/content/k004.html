@@ -1,0 +1,199 @@
+<article class="prose">
+  <section class="problem-section" data-role="representative-problem">
+    <span class="eyebrow"><span class="dot"></span>精选代表题 · 周期函数的定积分</span>
+    <h2>周期函数乘 x：不拆成 n 段，也能算完整积分</h2>
+    <div class="problem-statement">
+      <p>设数列由下式定义，求 <strong>a<sub>n</sub></strong> 的表达式。其中 <strong>n=1,2,…</strong> 为正整数。</p>
+      <div class="math">
+        <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+          <msub><mi>a</mi><mi>n</mi></msub><mo>=</mo>
+          <msubsup><mo>∫</mo><mn>0</mn><mrow><mi>n</mi><mi>π</mi></mrow></msubsup>
+          <mi>x</mi><mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo><mi>d</mi><mi>x</mi>
+        </math>
+      </div>
+      <p class="problem-conditions">这里的上限是 <strong>nπ</strong>；<strong>绝对值只包住 sin x</strong>，不包 x。</p>
+    </div>
+    <h3>这道题的三个核心考点</h3>
+    <div class="exam-point-list">
+      <span>绝对值三角函数的周期性</span>
+      <span>定积分的区间对称变换</span>
+      <span>周期分段与数列求和</span>
+    </div>
+    <details class="hint-accordion">
+      <summary>🔍 第一次做，先看一个选法提示</summary>
+      <p>你可能会想把积分按 0→π、π→2π …… 一段段拆开。可以，但很费事。观察 <strong>0 与 nπ 关于中点对称</strong>，再想一想：把 x 换成 nπ−x 后，<strong>|sin x| 会不会发生变化？</strong></p>
+    </details>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>01 / 考场思路</span>
+    <h2>先看“绝对值”，再看“周期”和“中点对称”</h2>
+    <p><strong>sin x</strong> 的最小正周期是 <strong>2π</strong>；但由于有绝对值，负的半波被翻上来，<strong>|sin x|</strong> 的最小正周期缩短成 <strong>π</strong>。</p>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>|</mo><mi>sin</mi><mo>(</mo><mi>x</mi><mo>+</mo><mi>π</mi><mo>)</mo><mo>|</mo>
+        <mo>=</mo><mo>|</mo><mo>−</mo><mi>sin</mi><mi>x</mi><mo>|</mo>
+        <mo>=</mo><mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo>
+      </math>
+    </div>
+    <p>而且对于任意正整数 n，还满足：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>|</mo><mi>sin</mi><mo>(</mo><mi>n</mi><mi>π</mi><mo>−</mo><mi>x</mi><mo>)</mo><mo>|</mo>
+        <mo>=</mo><mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo>
+      </math>
+    </div>
+    <p>因为 <strong>sin(nπ−x)=(-1)<sup>n+1</sup>sin x</strong>，取绝对值后符号消失。于是 [0,nπ] 的左右两端可以相互配对。</p>
+    <div class="callout blue"><strong>一眼识别：</strong>定积分里出现 <strong>x·f(x)</strong>，且 f(x) 关于积分区间中点对称，就尝试替换 <strong>x→a+b−x</strong>；成对相加，x 就能消掉。</div>
+
+    <div class="periodic-demo" data-periodic-demo>
+      <div class="periodic-top">
+        <div><strong>拖动区间长度，看绝对值的周期重复</strong><p>每多一个 π，就多一个面积为 2 的“拱形”。</p></div>
+        <label>n = <output id="periodic-n-value" for="periodic-slider">3</output></label>
+      </div>
+      <input id="periodic-slider" type="range" min="1" max="6" step="1" value="3" aria-label="周期数量 n">
+      <svg id="periodic-svg" viewBox="0 0 780 208" role="img" aria-label="n等于3时，三个周期的绝对值正弦曲线及其关于中点的对称性">
+        <rect width="780" height="208" rx="12" fill="#fff"/>
+        <path d="M48 151 C90 151 116 44 160 44 C204 44 231 151 272 151 C315 151 341 44 384 44 C427 44 455 151 496 151 C538 151 563 44 608 44 C651 44 679 151 720 151 L48 151 Z" fill="#b9e6df" opacity=".55"/>
+        <path d="M48 151 C90 151 116 44 160 44 C204 44 231 151 272 151 C315 151 341 44 384 44 C427 44 455 151 496 151 C538 151 563 44 608 44 C651 44 679 151 720 151" stroke="#117e74" fill="none" stroke-width="3"/>
+        <path d="M384 28 L384 163" stroke="#d28741" stroke-dasharray="6 5" stroke-width="2"/>
+        <path d="M48 151 H727" stroke="#77879b" stroke-width="1.6"/>
+        <text x="48" y="177" fill="#4d6177" font-size="14" text-anchor="middle">0</text>
+        <text x="272" y="177" fill="#4d6177" font-size="14" text-anchor="middle">π</text>
+        <text x="496" y="177" fill="#4d6177" font-size="14" text-anchor="middle">2π</text>
+        <text x="720" y="177" fill="#4d6177" font-size="14" text-anchor="middle">3π</text>
+        <text x="383" y="20" fill="#a86a2d" font-size="14" text-anchor="middle">对称中点</text>
+      </svg>
+      <div id="periodic-facts" class="periodic-facts" aria-live="polite">
+        <div><span>完整周期</span><strong>3 段</strong></div><div><span>绝对值正弦的面积</span><strong>6</strong></div><div><span>原积分 aₙ</span><strong>9π</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>02 / 核心解法：对称变换</span>
+    <h2>不要直接积分 x，把它变成 nπ−x 再相加</h2>
+    <p>记原来的积分为 a<sub>n</sub>。令 <strong>t=nπ−x</strong>，那么 <strong>x=nπ−t</strong>，并且 <strong>dx=−dt</strong>；当 x=0 时 t=nπ，当 x=nπ 时 t=0，上下限也要交换。</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msub><mi>a</mi><mi>n</mi></msub><mo>=</mo>
+        <msubsup><mo>∫</mo><mn>0</mn><mrow><mi>n</mi><mi>π</mi></mrow></msubsup>
+        <mo>(</mo><mi>n</mi><mi>π</mi><mo>−</mo><mi>t</mi><mo>)</mo>
+        <mo>|</mo><mi>sin</mi><mi>t</mi><mo>|</mo><mi>d</mi><mi>t</mi>
+      </math>
+    </div>
+    <p>变量名只是记号，把 t 换回 x。将它与原式相加：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mn>2</mn><msub><mi>a</mi><mi>n</mi></msub><mo>=</mo>
+        <msubsup><mo>∫</mo><mn>0</mn><mrow><mi>n</mi><mi>π</mi></mrow></msubsup>
+        <mo>[</mo><mi>x</mi><mo>+</mo><mo>(</mo><mi>n</mi><mi>π</mi><mo>−</mo><mi>x</mi><mo>)</mo><mo>]</mo>
+        <mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo><mi>d</mi><mi>x</mi>
+      </math>
+    </div>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mo>=</mo><mi>n</mi><mi>π</mi>
+        <msubsup><mo>∫</mo><mn>0</mn><mrow><mi>n</mi><mi>π</mi></mrow></msubsup>
+        <mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo><mi>d</mi><mi>x</mi>
+      </math>
+    </div>
+    <div class="callout"><strong>最有用的一步：</strong><span style="font-family:Georgia,serif">x + (nπ−x) = nπ</span>，因此原来麻烦的 x 消失了。这就是为什么遇到对称的积分，换元再相加往往比一段段硬算更快。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>03 / 周期面积</span>
+    <h2>为什么每个 π 区间的面积是 2？</h2>
+    <p>先只看第一个周期 [0,π]。这一段 sin x ≥ 0，所以绝对值可以去掉：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msubsup><mo>∫</mo><mn>0</mn><mi>π</mi></msubsup>
+        <mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo><mi>d</mi><mi>x</mi>
+        <mo>=</mo>
+        <msubsup><mo>∫</mo><mn>0</mn><mi>π</mi></msubsup>
+        <mi>sin</mi><mi>x</mi><mi>d</mi><mi>x</mi>
+        <mo>=</mo><mo>[</mo><mo>−</mo><mi>cos</mi><mi>x</mi><msubsup><mo>]</mo><mn>0</mn><mi>π</mi></msubsup>
+        <mo>=</mo><mn>2</mn>
+      </math>
+    </div>
+    <p>从 0 到 nπ 恰有 n 个完整周期，所以总面积是：</p>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msubsup><mo>∫</mo><mn>0</mn><mrow><mi>n</mi><mi>π</mi></mrow></msubsup>
+        <mo>|</mo><mi>sin</mi><mi>x</mi><mo>|</mo><mi>d</mi><mi>x</mi>
+        <mo>=</mo><mn>2</mn><mi>n</mi>
+      </math>
+    </div>
+    <p>代回上一节得到的等式：</p>
+    <div class="math result-math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <mn>2</mn><msub><mi>a</mi><mi>n</mi></msub>
+        <mo>=</mo><mi>n</mi><mi>π</mi><mo>×</mo><mn>2</mn><mi>n</mi>
+        <mspace width="1em"/><mo>⟹</mo>
+        <msub><mi>a</mi><mi>n</mi></msub><mo>=</mo><msup><mi>n</mi><mn>2</mn></msup><mi>π</mi>
+      </math>
+    </div>
+    <div class="callout blue"><strong>要会复现的方法，不是背一个答案：</strong><br>“x 乘对称函数” → 换 x 为区间端点之和减 x → 两式相加 → 利用周期面积。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>04 / 第二种解法（有助于迁移）</span>
+    <h2>如果没看出对称性，也能按每段积分列递推</h2>
+    <p>把第 n 段单独取出来。设 <strong>x=(n−1)π+t</strong>，t 从 0 到 π；这段内的绝对值正弦等于 sin t。</p>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msub><mi>a</mi><mi>n</mi></msub><mo>−</mo><msub><mi>a</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub>
+        <mo>=</mo><msubsup><mo>∫</mo><mn>0</mn><mi>π</mi></msubsup>
+        <mo>[</mo><mo>(</mo><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo><mi>π</mi><mo>+</mo><mi>t</mi><mo>]</mo>
+        <mi>sin</mi><mi>t</mi><mi>d</mi><mi>t</mi>
+      </math>
+    </div>
+    <p>其中第一部分的积分是 2(n−1)π，第二部分可以用分部积分：</p>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msubsup><mo>∫</mo><mn>0</mn><mi>π</mi></msubsup>
+        <mi>t</mi><mi>sin</mi><mi>t</mi><mi>d</mi><mi>t</mi>
+        <mo>=</mo><mo>[</mo><mo>−</mo><mi>t</mi><mi>cos</mi><mi>t</mi><mo>+</mo><mi>sin</mi><mi>t</mi>
+        <msubsup><mo>]</mo><mn>0</mn><mi>π</mi></msubsup><mo>=</mo><mi>π</mi>
+      </math>
+    </div>
+    <div class="math small">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msub><mi>a</mi><mi>n</mi></msub><mo>−</mo><msub><mi>a</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub>
+        <mo>=</mo><mo>(</mo><mn>2</mn><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo><mi>π</mi>
+      </math>
+    </div>
+    <p>第一段贡献 π，第二段贡献 3π，第三段贡献 5π……前 n 个奇数之和等于 n²：</p>
+    <div class="math">
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="block">
+        <msub><mi>a</mi><mi>n</mi></msub><mo>=</mo>
+        <mi>π</mi><mo>[</mo><mn>1</mn><mo>+</mo><mn>3</mn><mo>+</mo><mo>⋯</mo><mo>+</mo><mo>(</mo><mn>2</mn><mi>n</mi><mo>−</mo><mn>1</mn><mo>)</mo><mo>]</mo>
+        <mo>=</mo><msup><mi>n</mi><mn>2</mn></msup><mi>π</mi>
+      </math>
+    </div>
+    <div class="callout warning"><strong>两种方法怎么选？</strong>本题优先对称法，短且不容易漏符号；如果题目换成 <strong>x²|sin x|</strong>，简单相加无法直接消掉 x²，就更可能需要分段、递推或其他方法。</div>
+  </section>
+
+  <section>
+    <span class="eyebrow"><span class="dot"></span>05 / 考场自测</span>
+    <h2>会用周期和对称，比单纯记住 n²π 更重要</h2>
+    <div class="quiz" data-quiz-correct="1" data-quiz-explain="令 x=2π−t，绝对值正弦不变；两式相加可得 2I=2π×4，所以 I=4π。">
+      <h3>① 当 n=2 时，原积分等于多少？</h3>
+      <div class="options">
+        <button type="button">2π</button>
+        <button type="button">4π</button>
+        <button type="button">8π</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">选一项，再看计算依据。</div>
+    </div>
+    <div class="quiz" data-quiz-correct="2" data-quiz-explain="虽然 sin x 的周期为 2π，但 |sin x| 的周期是 π，因此从 0 到 nπ 恰好有 n 个周期，面积总和为 2n。">
+      <h3>② 计算 ∫₀ⁿπ|sin x|dx，正确答案是？</h3>
+      <div class="options">
+        <button type="button">0</button>
+        <button type="button">nπ</button>
+        <button type="button">2n</button>
+      </div>
+      <div class="quiz-feedback" aria-live="polite">最容易错在把 sin x 和 |sin x| 的周期混淆。</div>
+    </div>
+  </section>
+</article>
