@@ -12,6 +12,14 @@
 
   const reviewQuestions = [
     {
+      topic: "周期函数与定积分对称性",
+      question: "计算 ∫₀ⁿπ x|sin x|dx，最快应该先检查什么？",
+      options: ["对称换元 x→nπ−x，再两式相加", "直接去掉绝对值并积分", "把 n 当成连续变量求导"],
+      answer: 0,
+      explain: "|sin(nπ−x)|=|sin x|，对称换元后 x+(nπ−x)=nπ，再用 |sin| 的 π 周期面积求值。"
+    },
+
+    {
       topic: "导数图像与原函数增量",
       question: "题目给出导数图像、围成的面积和一个函数值，最先考虑什么？",
       options: ["先猜原函数的解析式", "把导数积分，求原函数增量", "先用洛必达"],
@@ -219,7 +227,8 @@
       ["自测练习",()=>setupQuiz($("#lesson-content"))],
       ["图像交互",setupAreaButtons],
       ["高阶导互动",setupDerivativeLab],
-      ["部分分式互动",setupDecompLab]
+      ["部分分式互动",setupDecompLab],
+      ["周期与对称演示",setupPeriodicDemo]
     ];
     for(const [name,init] of widgets){
       try { init(); }
@@ -326,6 +335,58 @@
     }
     buttons.forEach(b=>b.addEventListener("click",()=>choose(b.dataset.root)));
     choose("one");
+  }
+
+  function setupPeriodicDemo(){
+    const demo=$("[data-periodic-demo]",$("#lesson-content"));
+    if(!demo)return;
+    const slider=$("#periodic-slider",demo);
+    const svg=$("#periodic-svg",demo);
+    const label=$("#periodic-n-value",demo);
+    const numbers=$("#periodic-facts strong",demo);
+    if(!slider||!svg||!label||numbers.length!==3)return;
+    const fmt=num=>Number(num).toFixed(1);
+    function draw(){
+      const n=Math.max(1,Math.min(6,Math.round(Number(slider.value)||3)));
+      label.textContent=String(n);
+      numbers[0].textContent=n+" 段";
+      numbers[1].textContent=String(2*n);
+      numbers[2].textContent=n*n+"π";
+      const left=48,right=733,base=151,w=right-left,h=106;
+      const pts=[];
+      const samples=n*75;
+      for(let j=0;j<=samples;j++){
+        const ratio=j/samples, angle=n*Math.PI*ratio;
+        pts.push([left+w*ratio,base-h*Math.abs(Math.sin(angle))]);
+      }
+      const curve=pts.map((v,i)=>(i===0?"M":"L")+fmt(v[0])+" "+fmt(v[1])).join(" ");
+      const polygons=curve+" L"+fmt(right)+" "+base+" L"+left+" "+base+" Z";
+      let marks="";
+      for(let k=0;k<=n;k++){
+        const x=left+w*k/n;
+        marks+='<line x1="'+fmt(x)+'" y1="40" x2="'+fmt(x)+'" y2="'+base+'" stroke="#dae5ef" stroke-dasharray="3 5" />';
+        marks+='<text x="'+fmt(x)+'" y="179" fill="#657c92" font-size="13" text-anchor="middle">'+(k===0?"0":k===1?"π":k+"π")+'</text>';
+      }
+      const mid=left+w/2;
+      const ratio=.19;
+      const p1=left+w*ratio,p2=right-w*ratio;
+      const pointY=base-h*Math.abs(Math.sin(n*Math.PI*ratio));
+      svg.innerHTML=
+        '<rect width="780" height="208" rx="12" fill="#fff"/>'+
+        marks+
+        '<path d="'+polygons+'" fill="#b9e6df" fill-opacity=".55"/>'+
+        '<line x1="'+left+'" y1="'+base+'" x2="'+(right+8)+'" y2="'+base+'" stroke="#8293a4" stroke-width="1.8"/>'+
+        '<path d="'+curve+'" stroke="#117e74" fill="none" stroke-width="3.4" stroke-linejoin="round"/>'+
+        '<line x1="'+fmt(mid)+'" y1="27" x2="'+fmt(mid)+'" y2="'+base+'" stroke="#cf813b" stroke-width="2" stroke-dasharray="6 5"/>'+
+        '<circle cx="'+fmt(p1)+'" cy="'+fmt(pointY)+'" r="6" fill="#0f7f73" stroke="#fff" stroke-width="2"/>'+
+        '<circle cx="'+fmt(p2)+'" cy="'+fmt(pointY)+'" r="6" fill="#0f7f73" stroke="#fff" stroke-width="2"/>'+
+        '<text x="'+fmt(mid)+'" y="21" fill="#aa692e" font-size="14" text-anchor="middle">对称中点</text>'+
+        '<text x="690" y="25" fill="#147c70" font-size="15">y=|sin x|</text>'+
+        '<text x="'+fmt(mid)+'" y="201" fill="#536a7c" font-size="13" text-anchor="middle">两侧对称点的 |sin x| 相同 · 每个拱形面积为 2</text>';
+      svg.setAttribute("aria-label","n="+n+"时，"+n+"个正弦绝对值拱形；关于区间中点成对对称。总面积="+(2*n));
+    }
+    slider.addEventListener("input",draw);
+    draw();
   }
 
   function newReviewQuestion() {
