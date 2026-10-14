@@ -45,7 +45,7 @@ jobs:
       - name: Smoke-test published HTML and JS
         run: |
           BASE="${{ steps.deployment.outputs.page_url }}"
-          for FILE in content/catalog.json content/k001.html content/k002.html content/k003.html assets/site.js; do
+          for FILE in content/catalog.json content/k001.html content/k002.html content/k003.html content/k005.html assets/site.js; do
             echo "Checking ${BASE}${FILE}"
             curl --fail --location --silent --show-error --retry 5 --retry-delay 4 --retry-all-errors "${BASE}${FILE}" -o /dev/null
           done
