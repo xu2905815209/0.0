@@ -11,6 +11,7 @@
   let catalog = [], mastery = {}, onlyPending = false, lastReview = -1, pendingLesson = 0;
 
   const reviewQuestions = [
+    {topic:"含参积分极限",question:"h/(h²+x²) 的积分集中在0附近，为什么要取区间 [−√h,√h]？",options:["为了让积分区间固定","让中值点趋于0且保留几乎全部核面积","这样能直接用洛必达"],answer:1,explain:"√h→0 且 √h/h→∞，两个要求同时成立。"},
     {
       topic: "周期函数与定积分对称性",
       question: "计算 ∫₀ⁿπ x|sin x|dx，最快应该先检查什么？",
@@ -228,7 +229,8 @@
       ["图像交互",setupAreaButtons],
       ["高阶导互动",setupDerivativeLab],
       ["部分分式互动",setupDecompLab],
-      ["周期与对称演示",setupPeriodicDemo]
+      ["周期与对称演示",setupPeriodicDemo],
+      ["尖峰积分核可视化",setupKernelDemo]
     ];
     for(const [name,init] of widgets){
       try { init(); }
@@ -386,6 +388,72 @@
       svg.setAttribute("aria-label","n="+n+"时，"+n+"个正弦绝对值拱形；关于区间中点成对对称。总面积="+(2*n));
     }
     slider.addEventListener("input",draw);
+    draw();
+  }
+
+
+  function setupKernelDemo(){
+    const lab=$("[data-k005-demo]",$("#lesson-content"));
+    if(!lab)return;
+    const input=$("#k005-slider",lab),svg=$("#k005-plot",lab),hText=$("#k005-h",lab);
+    const core=$("#k005-core",lab),tail=$("#k005-tail",lab),share=$("#k005-share",lab),bar=$("#k005-bar",lab),feedback=$("#k005-feedback",lab);
+    if(!input||!svg||!core||!tail||!share||!bar||!feedback||!hText)return;
+    const values=[.4,.18,.08,.03,.009,.002];
+    let mode="sqrt";
+    const cuts=$$("[data-k005-cut]",lab);
+    const fmt=v=>Number(v).toFixed(2);
+    function draw(){
+      const h=values[Number(input.value)],delta=mode==="sqrt"?Math.sqrt(h):h;
+      const total=2*Math.atan(1/h),middle=2*Math.atan(delta/h),outer=total-middle;
+      hText.textContent=h.toFixed(3);
+      core.textContent=middle.toFixed(4);
+      tail.textContent=outer.toFixed(4);
+      share.textContent=(100*middle/total).toFixed(1)+"%";
+      bar.style.width=(100*middle/total).toFixed(2)+"%";
+      const left=55,right=685,baseline=208,height=156,cx=(left+right)/2,span=(right-left)/2;
+      // Vertical scale follows each peak 1/h; show exact areas separately.
+      const curveY=x=>baseline-height*(h*h)/(h*h+x*x);
+      let path="",central="",segments=700;
+      for(let j=0;j<=segments;j++){
+        const x=-1+2*j/segments;
+        const X=cx+x*span,Y=curveY(x);
+        path+=(j?"L":"M")+fmt(X)+" "+fmt(Y)+" ";
+      }
+      const drawArea=(lo,hi,color)=>{
+        let pts="M"+fmt(cx+span*lo)+" "+baseline+" ";
+        const count=Math.max(12,Math.ceil(500*(hi-lo)/2));
+        for(let j=0;j<=count;j++){
+          const x=lo+(hi-lo)*j/count;
+          pts+="L"+fmt(cx+x*span)+" "+fmt(curveY(x))+" ";
+        }
+        pts+="L"+fmt(cx+hi*span)+" "+baseline+" Z";
+        return '<path d="'+pts+'" fill="'+color+'" fill-opacity=".56"/>';
+      };
+      const dx=delta*span;
+      svg.innerHTML='<rect width="740" height="270" fill="#fff" rx="12"/>'+
+        drawArea(-1,-delta,"#f2bf9b")+drawArea(-delta,delta,"#82d6ca")+drawArea(delta,1,"#f2bf9b")+
+        '<line x1="'+left+'" y1="'+baseline+'" x2="'+right+'" y2="'+baseline+'" stroke="#6a8197" stroke-width="2"/>'+
+        '<line x1="'+cx+'" y1="35" x2="'+cx+'" y2="'+baseline+'" stroke="#9cadbf" stroke-width="1" stroke-dasharray="4 5"/>'+
+        '<path d="'+path+'" fill="none" stroke="#146f81" stroke-width="3.4"/>'+
+        '<line x1="'+fmt(cx-dx)+'" y1="46" x2="'+fmt(cx-dx)+'" y2="'+baseline+'" stroke="#008e7d" stroke-width="1.8" stroke-dasharray="5 4"/>'+
+        '<line x1="'+fmt(cx+dx)+'" y1="46" x2="'+fmt(cx+dx)+'" y2="'+baseline+'" stroke="#008e7d" stroke-width="1.8" stroke-dasharray="5 4"/>'+
+        '<text x="'+cx+'" y="250" fill="#456479" text-anchor="middle" font-size="15">0</text>'+
+        '<text x="'+left+'" y="250" fill="#456479" text-anchor="middle" font-size="15">−1</text>'+
+        '<text x="'+right+'" y="250" fill="#456479" text-anchor="middle" font-size="15">1</text>'+
+        '<text x="'+fmt(cx-dx)+'" y="35" fill="#027c70" text-anchor="middle" font-size="13">−δ</text>'+
+        '<text x="'+fmt(cx+dx)+'" y="35" fill="#027c70" text-anchor="middle" font-size="13">δ</text>'+
+        '<text x="72" y="24" font-size="15" fill="#205573">y = h/(h²+x²)（示意纵轴缩放）</text>';
+      svg.setAttribute("aria-label","h="+h+",δ="+delta.toFixed(4)+",中心面积"+middle.toFixed(4)+",两侧面积"+outer.toFixed(4));
+      feedback.textContent=mode==="sqrt"
+        ?"δ=√h：中间区间缩向0，同时中心面积随着h减小趋向π；两侧面积趋向0。"
+        :"δ=h：不论h多小，中间面积都固定为π/2；两侧还剩近一半，所以这样分割不够。";
+    }
+    input.addEventListener("input",draw);
+    cuts.forEach(button=>button.addEventListener("click",()=>{
+      mode=button.dataset.k005Cut;
+      cuts.forEach(b=>b.classList.toggle("active",b===button));
+      draw();
+    }));
     draw();
   }
 
