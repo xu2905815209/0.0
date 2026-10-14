@@ -225,3 +225,25 @@ main{padding-bottom:70px}
 .decomp-result p{font-size:14px;color:#426078;margin:10px 5px}
 .result-math{background:#ecf8f2;border-color:#c3e4d0}
 .result-math math{color:#12624a}
+
+
+/* K005: Concentrated-kernel interactive proof */
+.k005-demo{margin:19px 0;padding:20px;border:1px solid #c9ddec;border-radius:17px;background:#f5faff}
+.k005-controls{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap}
+.k005-controls label{display:flex;flex-direction:column;gap:8px;color:#294d69;font-weight:750;min-width:230px;flex:1}
+.k005-controls input{width:100%;accent-color:#087c80}
+.k005-buttons{display:flex;gap:7px;flex-wrap:wrap}
+.k005-buttons button{border-radius:9px;border:1px solid #b5cbd8;padding:10px 14px;background:#fff;color:#265a75;font-weight:750}
+.k005-buttons button.active{background:#126e80;color:white;border-color:#126e80}
+.k005-demo svg{display:block;width:100%;height:auto;border-radius:13px;margin:13px 0 5px;border:1px solid #d9e7f2;background:#fff}
+.k005-note{font-size:12px!important;color:#637b8a!important;line-height:1.7!important;margin:4px 0 13px!important}
+.k005-data{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.k005-data>div{background:#fff;border:1px solid #dce6ef;border-radius:10px;padding:13px;text-align:center;color:#486179;font-size:12px}
+.k005-data strong{display:block;color:#0b6879;font-size:23px;margin:6px 0 0}
+.k005-progress{height:11px;background:#efcdb8;border-radius:9px;overflow:hidden;margin-top:14px}
+.k005-progress>div{height:100%;background:#24b1a1;transition:width .25s}
+.k005-strip{display:grid;grid-template-columns:1fr 1.3fr 1fr;margin:18px 0;border-radius:12px;overflow:hidden;border:1px solid #d8e4e9}
+.k005-strip div{background:#f9e5d7;text-align:center;padding:14px 7px;color:#925a36;font-weight:800;line-height:1.8}
+.k005-strip div:nth-child(2){background:#e4f6f0;color:#0c816f;border-left:2px solid white;border-right:2px solid white}
+.k005-final{background:#e8f7f1;border-color:#b9dccd}
+@media(max-width:550px){.k005-demo{padding:12px}.k005-data{gap:5px}.k005-data strong{font-size:17px}.k005-data>div{padding:10px 5px}.k005-buttons button{padding:8px 10px}}
