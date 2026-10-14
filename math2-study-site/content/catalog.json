@@ -130,5 +130,47 @@
         "hint": "1/(t±1) 积成 ln|t±1|"
       }
     ]
+  },
+  {
+    "id": "k005",
+    "number": "精选题 05",
+    "chapter": "含参积分极限",
+    "title": "尖峰核积分极限：中值定理与区间分割",
+    "summary": "积分核在零点附近越来越集中：先图像观察，再用中间区间的积分中值定理、两侧夹逼估计证明极限 πf(0)。",
+    "tags": [
+      "积分第一中值定理",
+      "区间分割",
+      "夹逼估计"
+    ],
+    "trigger": "h→0⁺ 的积分，含 h/(h²+x²) 集中尖峰核",
+    "keywords": [
+      "含参积分",
+      "积分极限",
+      "尖峰",
+      "狄拉克",
+      "积分中值定理",
+      "分割区间",
+      "根号h",
+      "arctan",
+      "反正切"
+    ],
+    "problemTitle": "核函数集中于零点的积分极限",
+    "problem": "设 f(x) 在闭区间 [−1,1] 上连续。求当 h→0⁺ 时积分 ∫_{−1}^1 [h/(h²+x²)] f(x)dx 的极限，并说明为什么直接对全区间使用积分中值定理还不够。",
+    "problemMath": "<math xmlns=\"http://www.w3.org/1998/Math/MathML\" display=\"block\"><munder><mo>lim</mo><mrow><mi>h</mi><mo>→</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>1</mn></mrow><mn>1</mn></msubsup><mfrac><mi>h</mi><mrow><msup><mi>h</mi><mn>2</mn></msup><mo>+</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi></math>",
+    "answer": "π f(0)",
+    "points": [
+      {
+        "name": "积分第一中值定理",
+        "hint": "正权重下提取某一点的函数值"
+      },
+      {
+        "name": "含参积分的区间分割",
+        "hint": "缩小中心区间同时保留几乎全部权重"
+      },
+      {
+        "name": "连续性与夹逼估计",
+        "hint": "中值点趋零、两侧有界估计趋零"
+      }
+    ]
   }
 ]
