@@ -1,0 +1,53 @@
+<article class="prose">
+<section class="problem-section" data-role="representative-problem">
+<span class="eyebrow"><span class="dot"></span>精选代表题 · 含参积分极限</span>
+<h2>越来越尖的积分核：为什么极限只由 f(0) 决定？</h2>
+<div class="problem-statement"><p>设 <strong>f 在 [−1,1] 连续</strong>，求下列极限，注意 <strong>h→0⁺</strong>。</p>
+<div class="math"><math display="block"><munder><mo>lim</mo><mrow><mi>h</mi><mo>→</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>1</mn></mrow><mn>1</mn></msubsup><mfrac><mi>h</mi><mrow><msup><mi>h</mi><mn>2</mn></msup><mo>+</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi></math></div></div>
+<h3>本题对应考点</h3><div class="exam-point-list"><span>积分第一中值定理</span><span>含参积分的区间分割</span><span>连续性与夹逼估计</span></div>
+<details class="hint-accordion"><summary>第一眼不会？打开第一步提示</summary><p>只看权重 h/(h²+x²)：固定 x≠0 时它趋零，但 x=0 时等于 1/h，反而无穷大。说明面积正在集中于零附近。</p></details></section>
+
+<section><span class="eyebrow"><span class="dot"></span>01 · 为什么不能直接代入</span><h2>点点趋零，却不意味着积分趋零</h2>
+<p>令 W<sub>h</sub>(x)=h/(h²+x²)。对每个固定的 x≠0，W<sub>h</sub>(x)→0；但 W<sub>h</sub>(0)=1/h→∞。这是一根越来越高、越来越窄的尖峰。</p>
+<div class="math"><math display="block"><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>1</mn></mrow><mn>1</mn></msubsup><mfrac><mi>h</mi><mrow><msup><mi>h</mi><mn>2</mn></msup><mo>+</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mi>d</mi><mi>x</mi><mo>=</mo><mn>2</mn><mi>arctan</mi><mfrac><mn>1</mn><mi>h</mi></mfrac><mo>→</mo><mi>π</mi></math></div>
+<div class="callout warning">最常见误判：把 h=0 直接代入被积函数，得到 0。事实上这里无法直接交换“积分”和“极限”，因为中心尖峰保存了非零面积。</div></section>
+
+<section><span class="eyebrow"><span class="dot"></span>02 · 可拖动的真实曲线</span><h2>拖动 h，观察中心面积与两侧面积</h2>
+<p>图中青色区间是 [−δ,δ]，橙色是两侧。选择 δ=√h 后，随着 h 变小，青色区间本身收缩，但所占面积反而接近 100%。</p>
+<div class="k005-demo" data-k005-demo>
+<div class="k005-controls"><label>h = <strong id="k005-h">0.080</strong><input id="k005-slider" type="range" min="0" max="5" step="1" value="2"></label><div class="k005-buttons"><button type="button" data-k005-cut="h">δ=h</button><button type="button" data-k005-cut="sqrt" class="active">δ=√h</button></div></div>
+<svg id="k005-plot" viewBox="0 0 740 270" role="img" aria-label="含参核函数与中间、两侧着色区域" width="100%"></svg>
+<p class="k005-note">纵轴按当前最大峰值缩放，只用于比较形状；面积以以下精确积分值为准。</p>
+<div class="k005-data"><div>中心面积<strong id="k005-core">—</strong></div><div>两侧面积<strong id="k005-tail">—</strong></div><div>中心占比<strong id="k005-share">—</strong></div></div>
+<div class="k005-progress"><div id="k005-bar"></div></div><p id="k005-feedback" class="callout blue"></p></div>
+<div class="callout">选区间时要同时满足两个条件：<strong>δ→0</strong> 使 f(x) 接近 f(0)，而 <strong>δ/h→∞</strong> 使几乎全部核面积落在中心。δ=√h 正好满足；δ=h 不行。</div></section>
+
+<section><span class="eyebrow"><span class="dot"></span>03 · 老师为什么写“行不通”</span><h2>积分中值定理本身能用，但直接用缺少定位</h2>
+<p>由于 h&gt;0，权重 W<sub>h</sub>(x) 为正。直接在 [−1,1] 使用积分第一中值定理，的确存在 ξ<sub>h</sub>∈(−1,1)：</p>
+<div class="math small"><math display="block"><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>1</mn></mrow><mn>1</mn></msubsup><msub><mi>W</mi><mi>h</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi><mo>=</mo><mi>f</mi><mo>(</mo><msub><mi>ξ</mi><mi>h</mi></msub><mo>)</mo><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>1</mn></mrow><mn>1</mn></msubsup><msub><mi>W</mi><mi>h</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi></math></div>
+<p>右边的权重积分趋 π，<strong>可是定理没有保证 ξ<sub>h</sub>→0</strong>。它只保证 ξ<sub>h</sub> 在永远不变的 (−1,1) 中。因此，不能直接把 f(ξ<sub>h</sub>) 写成 f(0)。</p>
+<div class="callout warning">“行不通”的准确含义：<strong>这一步不足以推出结果</strong>，并不是说积分中值定理不成立。</div></section>
+
+<section><span class="eyebrow"><span class="dot"></span>04 · 严格证明</span><h2>分三段：中心用中值定理，两侧用夹逼</h2>
+<div class="k005-strip"><div>左尾部<br>−1 到 −√h</div><div>中间<br>−√h 到 √h</div><div>右尾部<br>√h 到 1</div></div>
+<h3>① 中心为什么趋于 π f(0)？</h3>
+<p>取 0&lt;h&lt;1。在 [−√h,√h] 上，由积分第一中值定理，存在 ξ<sub>h</sub>∈[−√h,√h]，使中心积分等于 f(ξ<sub>h</sub>) 乘权重积分。由于 |ξ<sub>h</sub>|≤√h→0，连续性给出 f(ξ<sub>h</sub>)→f(0)。</p>
+<div class="math"><math display="block"><msubsup><mo>∫</mo><mrow><mo>−</mo><msqrt><mi>h</mi></msqrt></mrow><msqrt><mi>h</mi></msqrt></msubsup><mfrac><mi>h</mi><mrow><msup><mi>h</mi><mn>2</mn></msup><mo>+</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mi>d</mi><mi>x</mi><mo>=</mo><mn>2</mn><mi>arctan</mi><mfrac><mn>1</mn><msqrt><mi>h</mi></msqrt></mfrac><mo>→</mo><mi>π</mi></math></div>
+<p>因此中心部分趋于 <strong>π f(0)</strong>。</p>
+<h3>② 为什么两侧都能忽略？</h3>
+<p>f 在闭区间连续，所以存在 M≥0，使 |f(x)|≤M。在 |x|≥√h 的两侧，h²+x²≥x²。</p>
+<div class="math small"><math display="block"><mtext>两侧积分的绝对值之和</mtext><mo>≤</mo><mn>2</mn><mi>M</mi><mi>h</mi><msubsup><mo>∫</mo><msqrt><mi>h</mi></msqrt><mn>1</mn></msubsup><mfrac><mn>1</mn><msup><mi>x</mi><mn>2</mn></msup></mfrac><mi>d</mi><mi>x</mi><mo>=</mo><mn>2</mn><mi>M</mi><mo>(</mo><msqrt><mi>h</mi></msqrt><mo>−</mo><mi>h</mi><mo>)</mo><mo>→</mo><mn>0</mn></math></div>
+<p>两侧趋于 0，与中心结论合并：</p>
+<div class="math k005-final"><math display="block"><munder><mo>lim</mo><mrow><mi>h</mi><mo>→</mo><msup><mn>0</mn><mo>+</mo></msup></mrow></munder><msubsup><mo>∫</mo><mrow><mo>−</mo><mn>1</mn></mrow><mn>1</mn></msubsup><mfrac><mi>h</mi><mrow><msup><mi>h</mi><mn>2</mn></msup><mo>+</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo><mi>d</mi><mi>x</mi><mo>=</mo><mi>π</mi><mi>f</mi><mo>(</mo><mn>0</mn><mo>)</mo></math></div></section>
+
+<section><span class="eyebrow"><span class="dot"></span>05 · 为什么选 √h</span><h2>直接取 [−h,h] 为什么失败？</h2>
+<p>这段中间积分的质量始终是 π/2，而不是 π；有一半质量落在两侧，不能忽略。</p>
+<div class="math"><math display="block"><msubsup><mo>∫</mo><mrow><mo>−</mo><mi>h</mi></mrow><mi>h</mi></msubsup><mfrac><mi>h</mi><mrow><msup><mi>h</mi><mn>2</mn></msup><mo>+</mo><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mi>d</mi><mi>x</mi><mo>=</mo><mn>2</mn><mi>arctan</mi><mn>1</mn><mo>=</mo><mfrac><mi>π</mi><mn>2</mn></mfrac></math></div>
+<p>对照上面的滑块切换 δ=h 和 δ=√h：前者保留近一半，后者随 h→0 留下近全部。</p></section>
+
+<section><span class="eyebrow"><span class="dot"></span>06 · 做完练一遍</span><h2>用自测检验“会选法”</h2>
+<div class="quiz" data-quiz-correct="1" data-quiz-explain="不是中值定理失效，而是只知 ξ_h∈(−1,1)，没有证据保证 ξ_h→0。">
+<h3>直接在 [−1,1] 使用积分中值定理，为什么不够？</h3><div class="options"><button type="button">因为核权重为负</button><button type="button">因为不能确定中值点趋于 0</button><button type="button">因为 f 不连续</button></div><div class="quiz-feedback">先选答案。</div></div>
+<div class="quiz" data-quiz-correct="2" data-quiz-explain="δ→0 保证 f 在中心接近 f(0)；δ/h→∞ 保证中心保留全部积分面积。">
+<h3>好的中心半宽 δ 应满足什么？</h3><div class="options"><button type="button">δ 固定为 1</button><button type="button">δ=h</button><button type="button">δ→0 且 δ/h→∞</button></div><div class="quiz-feedback">想想区间缩窄与保留面积。</div></div></section>
+</article>
